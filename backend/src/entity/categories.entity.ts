@@ -6,7 +6,7 @@ export class Categories {
     id: number;
 
     @Column()
-    restaurantsId: number
+    restaurantId: number
 
     @Column()
     name: string;
