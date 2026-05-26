@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { RestaurantsModule } from './modules/restaurants/restaurants.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { DishesModule } from './modules/dishes/dishes.module';
+import { CartsModule } from './modules/carts/carts.module';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true
@@ -18,7 +19,7 @@ import { DishesModule } from './modules/dishes/dishes.module';
     database: process.env.MYSQLDATABASE,
     autoLoadEntities: true,
     synchronize: true,
-  }), RestaurantsModule, CategoriesModule, DishesModule],
+  }), RestaurantsModule, CategoriesModule, DishesModule, CartsModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -68,6 +68,18 @@ export class DishesService {
             data: dish,
         }
     }
+
+    async getDishByRestaurantId(id: number) {
+        await this.findRestaurantById(id);
+        const dishes = await this.dishRepository.find({
+            where: { restaurantId: id }
+        })
+        return {
+            statusCode: 200,
+            message: "Get dish by restaurant successfully",
+            data: dishes
+        }
+    }
     async updateDish(id: number, updateDish: UpdateDishDto) {
         const dish = await this.dishRepository.findOneBy({ id });
         if (!dish) {
