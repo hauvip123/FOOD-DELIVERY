@@ -7,6 +7,7 @@ import { RestaurantsModule } from './modules/restaurants/restaurants.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { DishesModule } from './modules/dishes/dishes.module';
 import { CartsModule } from './modules/carts/carts.module';
+import { OrdersModule } from './modules/orders/orders.module';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true
@@ -19,7 +20,7 @@ import { CartsModule } from './modules/carts/carts.module';
     database: process.env.MYSQLDATABASE,
     autoLoadEntities: true,
     synchronize: true,
-  }), RestaurantsModule, CategoriesModule, DishesModule, CartsModule],
+  }), RestaurantsModule, CategoriesModule, DishesModule, CartsModule, OrdersModule],
   controllers: [AppController],
   providers: [AppService],
 })
