@@ -8,6 +8,8 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { DishesModule } from './modules/dishes/dishes.module';
 import { CartsModule } from './modules/carts/carts.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true
@@ -20,7 +22,7 @@ import { OrdersModule } from './modules/orders/orders.module';
     database: process.env.MYSQLDATABASE,
     autoLoadEntities: true,
     synchronize: true,
-  }), RestaurantsModule, CategoriesModule, DishesModule, CartsModule, OrdersModule],
+  }), RestaurantsModule, CategoriesModule, DishesModule, CartsModule, OrdersModule, UsersModule, AuthModule],
   controllers: [AppController],
   providers: [AppService],
 })
