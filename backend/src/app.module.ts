@@ -10,6 +10,7 @@ import { CartsModule } from './modules/carts/carts.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ReviewModule } from './modules/review/review.module';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true
@@ -22,7 +23,7 @@ import { AuthModule } from './modules/auth/auth.module';
     database: process.env.MYSQLDATABASE,
     autoLoadEntities: true,
     synchronize: true,
-  }), RestaurantsModule, CategoriesModule, DishesModule, CartsModule, OrdersModule, UsersModule, AuthModule],
+  }), RestaurantsModule, CategoriesModule, DishesModule, CartsModule, OrdersModule, UsersModule, AuthModule, ReviewModule],
   controllers: [AppController],
   providers: [AppService],
 })
