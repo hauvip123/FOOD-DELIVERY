@@ -14,10 +14,10 @@ export class User {
     @Column()
     password: string;
 
-    @Column({ nullable: true })
+    @Column({ type: "varchar", nullable: true })
     phoneNumber: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: "varchar", nullable: true })
     avatar: string | null;
 
     @Column({ default: 'customer' })
@@ -26,7 +26,7 @@ export class User {
     @Column({ default: 'active' })
     status: string;
 
-    @Column({ nullable: true })
+    @Column({ type: "varchar", length: 512, nullable: true })
     refreshToken: string | null;
 
     @CreateDateColumn()
