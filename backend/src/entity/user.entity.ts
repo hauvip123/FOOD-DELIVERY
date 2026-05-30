@@ -14,10 +14,10 @@ export class User {
     @Column()
     password: string;
 
-    @Column({ type: "varchar", nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     phoneNumber: string | null;
 
-    @Column({ type: "varchar", nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     avatar: string | null;
 
     @Column({ default: 'customer' })
@@ -26,8 +26,14 @@ export class User {
     @Column({ default: 'active' })
     status: string;
 
-    @Column({ type: "varchar", length: 512, nullable: true })
+    @Column({ type: 'varchar', length: 512, nullable: true })
     refreshToken: string | null;
+
+    @Column({ type: 'varchar', length: 128, nullable: true })
+    resetPasswordToken: string | null;
+
+    @Column({ type: 'datetime', nullable: true })
+    resetPasswordExpires: Date | null;
 
     @CreateDateColumn()
     createdAt: Date;

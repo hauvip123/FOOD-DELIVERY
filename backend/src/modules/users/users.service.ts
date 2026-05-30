@@ -26,4 +26,24 @@ export class UsersService {
     async findByRefreshToken(refreshToken: string) {
         return this.userRepository.findOne({ where: { refreshToken } });
     }
+
+    async updateResetPasswordToken(userId: number, token: string | null, expires: Date | null) {
+        await this.userRepository.update(userId, {
+            resetPasswordToken: token,
+            resetPasswordExpires: expires,
+        });
+    }
+
+    async findByResetPasswordToken(resetPasswordToken: string) {
+        return this.userRepository.findOne({ where: { resetPasswordToken } });
+    }
+
+    async updatePassword(userId: number, password: string) {
+        await this.userRepository.update(userId, {
+            password,
+            resetPasswordToken: null,
+            resetPasswordExpires: null,
+            refreshToken: null,
+        });
+    }
 }

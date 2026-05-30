@@ -1,4 +1,5 @@
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000").replace(/\/$/, "");
+import { apiRequest, jsonBody } from "@/lib/api";
+export { ApiError } from "@/lib/api";
 
 export type AuthUser = {
   id: number;
@@ -12,14 +13,15 @@ export type AuthUser = {
   updatedAt?: string;
 };
 
-type LoginResponse = {
+export type AuthSession = {
+  user: AuthUser;
+  accessToken: string;
+};
+
+type AuthResponse = {
   statusCode: number;
   message: string;
-  data: {
-    user: AuthUser;
-    accessToken: string;
-    refreshToken: string;
-  };
+  data: AuthSession;
 };
 
 type RegisterResponse = {
@@ -27,57 +29,57 @@ type RegisterResponse = {
   message: string;
 };
 
-type ApiErrorBody = {
-  message?: string | string[];
-  error?: string;
+type LogoutResponse = {
+  statusCode: number;
+  message: string;
 };
 
-export class ApiError extends Error {
-  status: number;
+type ForgotPasswordResponse = {
+  statusCode: number;
+  message: string;
+};
 
-  constructor(message: string, status: number) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-  }
-}
-
-async function request<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(API_BASE_URL + path, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init.headers,
-    },
-  });
-
-  const body = (await response.json().catch(() => ({}))) as ApiErrorBody | T;
-
-  if (!response.ok) {
-    const message = (body as ApiErrorBody).message;
-    const normalizedMessage = Array.isArray(message) ? message.join(". ") : message;
-    throw new ApiError(normalizedMessage || (body as ApiErrorBody).error || "Không thể kết nối máy chủ.", response.status);
-  }
-
-  return body as T;
-}
+type ResetPasswordResponse = {
+  statusCode: number;
+  message: string;
+};
 
 export function register(payload: { username: string; email: string; password: string }) {
-  return request<RegisterResponse>("/auth/register", {
+  return apiRequest<RegisterResponse>("/auth/register", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: jsonBody(payload),
   });
 }
 
 export function login(payload: { email: string; password: string }) {
-  return request<LoginResponse>("/auth/login", {
+  return apiRequest<AuthResponse>("/auth/login", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: jsonBody(payload),
   });
 }
 
-export function saveAuthSession(data: LoginResponse["data"]) {
-  localStorage.setItem("accessToken", data.accessToken);
-  localStorage.setItem("refreshToken", data.refreshToken);
-  localStorage.setItem("user", JSON.stringify(data.user));
+export function refreshAccessToken() {
+  return apiRequest<AuthResponse>("/auth/refresh", {
+    method: "POST",
+  });
+}
+
+export function logout() {
+  return apiRequest<LogoutResponse>("/auth/logout", {
+    method: "POST",
+  });
+}
+
+export function forgotPassword(payload: { email: string }) {
+  return apiRequest<ForgotPasswordResponse>("/auth/forgot-password", {
+    method: "POST",
+    body: jsonBody(payload),
+  });
+}
+
+export function resetPassword(payload: { token: string; password: string }) {
+  return apiRequest<ResetPasswordResponse>("/auth/reset-password", {
+    method: "POST",
+    body: jsonBody(payload),
+  });
 }

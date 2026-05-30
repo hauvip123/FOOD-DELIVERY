@@ -5,11 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { ApiError, login, saveAuthSession } from "@/lib/auth";
+import { ApiError } from "@/lib/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { EnvelopeSimple, LockSimple, ArrowRight, GithubLogo, GoogleLogo } from "@phosphor-icons/react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,8 +28,7 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await login({ email: email.trim(), password });
-      saveAuthSession(response.data);
+      await login({ email: email.trim(), password });
       router.push("/");
       router.refresh();
     } catch (caughtError) {
@@ -83,7 +84,7 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between px-1">
                     <label htmlFor="login-password" className="text-sm font-black uppercase tracking-widest text-[#23140c]/40">Mật khẩu</label>
-                    <Link href="#" className="text-sm font-bold text-[#ff6b00] hover:underline">Quên mật khẩu?</Link>
+                    <Link href="/forgot-password" className="text-sm font-bold text-[#ff6b00] hover:underline">Quên mật khẩu?</Link>
                   </div>
                   <div className="relative group">
                     <LockSimple size={24} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#704322]/40 transition-colors group-focus-within:text-[#ff6b00]" />

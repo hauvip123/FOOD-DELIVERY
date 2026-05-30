@@ -1,9 +1,12 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
+import { createHash, randomBytes } from 'crypto';
+
+const RESET_PASSWORD_EXPIRES_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -58,14 +61,16 @@ export class AuthService {
         });
         await this.usersService.updateToken(user.id, refreshToken);
 
-        const { password, refreshToken: rf, ...result } = user;
+        const { password, refreshToken: rf, resetPasswordToken, resetPasswordExpires, ...result } = user;
         return {
-            statusCode: 200,
-            message: 'Login successfully',
-            data: {
-                user: result,
-                accessToken,
-                refreshToken,
+            refreshToken,
+            response: {
+                statusCode: 200,
+                message: 'Login successfully',
+                data: {
+                    user: result,
+                    accessToken,
+                },
             },
         };
     }
@@ -88,7 +93,7 @@ export class AuthService {
             role: user.role,
         };
         const accessToken = await this.jwtService.signAsync(payload);
-        const { password, refreshToken: rf, ...result } = user;
+        const { password, refreshToken: rf, resetPasswordToken, resetPasswordExpires, ...result } = user;
 
         return {
             statusCode: 200,
@@ -98,5 +103,62 @@ export class AuthService {
                 user: result,
             },
         };
+    }
+
+    async forgotPassword(email: string) {
+        const user = await this.usersService.findByEmail(email);
+
+        if (user) {
+            const resetToken = randomBytes(32).toString('hex');
+            const hashedResetToken = this.hashResetToken(resetToken);
+            const expires = new Date(Date.now() + RESET_PASSWORD_EXPIRES_MS);
+
+            await this.usersService.updateResetPasswordToken(user.id, hashedResetToken, expires);
+
+            const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3001';
+            const resetBaseUrl = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
+            const resetUrl = resetBaseUrl + '/reset-password?token=' + resetToken;
+            console.log('Reset password link for ' + user.email + ': ' + resetUrl);
+        }
+
+        return {
+            statusCode: 200,
+            message: 'Nếu email tồn tại, chúng tôi đã gửi link đặt lại mật khẩu.',
+        };
+    }
+
+    async resetPassword(token: string, password: string) {
+        const hashedResetToken = this.hashResetToken(token);
+        const user = await this.usersService.findByResetPasswordToken(hashedResetToken);
+
+        if (!user || !user.resetPasswordExpires || user.resetPasswordExpires.getTime() < Date.now()) {
+            throw new BadRequestException('Reset password token is invalid or expired');
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await this.usersService.updatePassword(user.id, hashedPassword);
+
+        return {
+            statusCode: 200,
+            message: 'Password reset successfully',
+        };
+    }
+
+    async logout(refreshToken?: string) {
+        if (refreshToken) {
+            const user = await this.usersService.findByRefreshToken(refreshToken);
+            if (user) {
+                await this.usersService.updateToken(user.id, null);
+            }
+        }
+
+        return {
+            statusCode: 200,
+            message: 'Logout successfully',
+        };
+    }
+
+    private hashResetToken(token: string) {
+        return createHash('sha256').update(token).digest('hex');
     }
 }

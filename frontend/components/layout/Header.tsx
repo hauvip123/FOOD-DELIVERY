@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { User, ShoppingBag, List } from "@phosphor-icons/react";
+import { User, ShoppingBag, List, SignOut } from "@phosphor-icons/react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const navLinks = [
     { name: "Trang chủ", href: "/" },
@@ -14,6 +17,12 @@ export function Header() {
     { name: "Ưu đãi", href: "/deals" },
     { name: "Đơn hàng", href: "/orders" },
   ];
+
+  async function handleLogout() {
+    await logout();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <motion.header
@@ -32,13 +41,9 @@ export function Header() {
         <nav className="hidden items-center gap-1 sm:gap-4 md:flex">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
+            const linkClassName = "relative px-4 py-2 text-sm font-black transition-colors " + (isActive ? "text-[#ff6b00]" : "text-[#704322]/70 hover:text-[#ff6b00]");
             return (
-              <Link
-                key={link.name}
-                href={link.href}
-                className={`relative px-4 py-2 text-sm font-black transition-colors ${isActive ? "text-[#ff6b00]" : "text-[#704322]/70 hover:text-[#ff6b00]"
-                  }`}
-              >
+              <Link key={link.name} href={link.href} className={linkClassName}>
                 {link.name}
                 {isActive && (
                   <motion.div
@@ -61,16 +66,33 @@ export function Header() {
             <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#23140c] text-[10px] font-black text-white">2</span>
           </Link>
 
-          <Link
-            href="/login"
-            className={`flex h-12 items-center gap-2 rounded-2xl px-6 text-sm font-black transition-all active:scale-95 ${pathname === "/login"
-              ? "bg-[#ff6b00] text-white shadow-[0_10px_20px_-5px_rgba(255,107,0,0.4)]"
-              : "bg-[#23140c] text-white shadow-lg hover:bg-[#ff6b00]"
-              }`}
-          >
-            <User size={20} weight="bold" />
-            <span className="hidden sm:inline">Đăng nhập</span>
-          </Link>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/account"
+                className="flex h-12 min-w-0 items-center gap-2 rounded-2xl bg-[#23140c] px-4 text-sm font-black text-white shadow-lg transition-all hover:bg-[#ff6b00] active:scale-95"
+              >
+                <User size={20} weight="bold" />
+                <span className="hidden max-w-28 truncate sm:inline">{user?.username}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="grid size-12 place-items-center rounded-2xl bg-orange-50 text-[#ff6b00] transition-all hover:bg-orange-100 active:scale-95"
+                aria-label="Đăng xuất"
+              >
+                <SignOut size={22} weight="bold" />
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className={"flex h-12 items-center gap-2 rounded-2xl px-6 text-sm font-black transition-all active:scale-95 " + (pathname === "/login" ? "bg-[#ff6b00] text-white shadow-[0_10px_20px_-5px_rgba(255,107,0,0.4)]" : "bg-[#23140c] text-white shadow-lg hover:bg-[#ff6b00]")}
+            >
+              <User size={20} weight="bold" />
+              <span className="hidden sm:inline">Đăng nhập</span>
+            </Link>
+          )}
 
           <button className="grid size-12 place-items-center rounded-2xl border border-black/5 md:hidden">
             <List size={24} weight="bold" />
@@ -80,5 +102,3 @@ export function Header() {
     </motion.header>
   );
 }
-
-
