@@ -1,9 +1,6 @@
 import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class CreateRestaurantDto {
-    @IsNotEmpty()
-    @IsNumber()
-    ownerId: number;
 
     @IsNotEmpty()
     @IsString()

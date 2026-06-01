@@ -11,8 +11,9 @@ export class RestaurantsService {
     constructor(
         @InjectRepository(Restaurant) private readonly restaurantRepository: Repository<Restaurant>
     ) { }
-    async createRestaurant(dataRestaurant: CreateRestaurantDto) {
+    async createRestaurant(dataRestaurant: CreateRestaurantDto, ownerId: number) {
         const restaurant = this.restaurantRepository.create(dataRestaurant)
+        restaurant.ownerId = ownerId;
         await this.restaurantRepository.save(restaurant);
         return {
             statusCode: 201,
@@ -27,6 +28,15 @@ export class RestaurantsService {
             statusCode: 200,
             message: "Restaurants found successfully",
             data: restaurant
+        }
+    }
+
+    async findByOwner(ownerId: number) {
+        const restaurants = await this.restaurantRepository.find({ where: { ownerId } });
+        return {
+            statusCode: 200,
+            message: "Owner restaurants found successfully",
+            data: restaurants
         }
     }
 
@@ -48,10 +58,11 @@ export class RestaurantsService {
             throw new NotFoundException("Restaurant not found")
         }
         Object.assign(restaurant, dataRestaurant);
-        await this.restaurantRepository.save(restaurant);
+        const updatedRestaurant = await this.restaurantRepository.save(restaurant);
         return {
             statusCode: 200,
-            message: "Restaurant updated successfully"
+            message: "Restaurant updated successfully",
+            data: updatedRestaurant
         }
     }
 
