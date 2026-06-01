@@ -92,7 +92,7 @@ export function HeroSection() {
               {perks.map((perk) => (
                 <div
                   key={perk.label}
-                  className={`group rounded-[2rem] ${perk.color} p-5 ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-xl`}
+                  className={`group rounded-4xl ${perk.color} p-5 ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-xl`}
                 >
                   <p className="text-2xl font-black tracking-tight text-[#ff6b00]">{perk.value}</p>
                   <p className="mt-1 text-xs font-bold uppercase tracking-widest text-[#704322]/60">{perk.label}</p>
@@ -104,7 +104,7 @@ export function HeroSection() {
           {/* Right Bento Asset */}
           <motion.div
             variants={itemVariants}
-            className="relative grid aspect-[4/5] w-full grid-cols-2 grid-rows-2 gap-4"
+            className="relative grid aspect-4/5 w-full grid-cols-2 grid-rows-2 gap-4"
           >
             {/* Main Hero Card */}
             <div className="relative col-span-2 row-span-1 overflow-hidden rounded-[3rem] bg-[#ff6b00] shadow-2xl">

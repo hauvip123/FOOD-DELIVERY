@@ -21,7 +21,7 @@ export function CategoriesSection() {
           <h2 className="text-2xl font-black tracking-tight text-[#23140c]">Khám phá theo danh mục</h2>
           <div className="h-px flex-1 bg-orange-100 ml-8 hidden md:block" />
         </div>
-        
+
         <div className="no-scrollbar flex gap-6 overflow-x-auto pb-4">
           {categories.map((category, idx) => (
             <motion.button
@@ -34,25 +34,23 @@ export function CategoriesSection() {
               type="button"
               className="group flex shrink-0 flex-col items-center gap-4"
             >
-              <div 
-                className={`relative size-24 overflow-hidden rounded-[2rem] p-1.5 transition-all duration-300 group-hover:shadow-[0_20px_40px_-10px_rgba(255,107,0,0.3)] ${
-                  category.active 
-                    ? "bg-[#ff6b00] shadow-[0_15px_30px_-10px_rgba(255,107,0,0.4)]" 
-                    : "bg-orange-50 group-hover:bg-orange-100"
-                }`}
+              <div
+                className={`relative size-24 overflow-hidden rounded-4xl p-1.5 transition-all duration-300 group-hover:shadow-[0_20px_40px_-10px_rgba(255,107,0,0.3)] ${category.active
+                  ? "bg-[#ff6b00] shadow-[0_15px_30px_-10px_rgba(255,107,0,0.4)]"
+                  : "bg-orange-50 group-hover:bg-orange-100"
+                  }`}
               >
                 <div className="relative h-full w-full overflow-hidden rounded-[1.6rem] bg-white">
-                  <Image 
-                    src={category.image} 
-                    alt={category.name} 
+                  <Image
+                    src={category.image}
+                    alt={category.name}
                     fill
-                    className="object-cover transition-transform group-hover:scale-110" 
+                    className="object-cover transition-transform group-hover:scale-110"
                   />
                 </div>
               </div>
-              <span className={`text-sm font-black tracking-tight transition-colors ${
-                category.active ? "text-[#ff6b00]" : "text-[#704322]"
-              }`}>
+              <span className={`text-sm font-black tracking-tight transition-colors ${category.active ? "text-[#ff6b00]" : "text-[#704322]"
+                }`}>
                 {category.name}
               </span>
             </motion.button>
