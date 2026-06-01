@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 
@@ -34,9 +32,7 @@ export default function RootLayout({
       <body className="min-h-full bg-[#fff7ed] text-[#23140c]">
         <AuthProvider>
           <CartProvider>
-            <Header />
             {children}
-            <Footer />
           </CartProvider>
         </AuthProvider>
       </body>

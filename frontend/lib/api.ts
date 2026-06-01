@@ -20,13 +20,20 @@ export function jsonBody(payload: unknown) {
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", headers.get("Content-Type") ?? "application/json");
+
+  if (typeof window !== "undefined") {
+    const accessToken = localStorage.getItem("accessToken");
+    if (accessToken) {
+      headers.set("Authorization", "Bearer " + accessToken);
+    }
+  }
+
   const response = await fetch(API_BASE_URL + path, {
     ...init,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...init.headers,
-    },
+    headers,
   });
 
   const body = (await response.json().catch(() => ({}))) as ApiErrorBody | T;

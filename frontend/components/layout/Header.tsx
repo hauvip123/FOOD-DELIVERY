@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, ShoppingCart, List, SignOut } from "@phosphor-icons/react";
 import { useAuth } from "@/contexts/AuthContext";
+import { canAccessManage } from "@/lib/auth";
 import { useCart } from "@/contexts/CartContext";
 
 export function Header() {
@@ -19,6 +20,10 @@ export function Header() {
     { name: "Ưu đãi", href: "/deals" },
     { name: "Đơn hàng", href: "/orders" },
   ];
+
+  if (canAccessManage(user?.role)) {
+    navLinks.push({ name: "Quản lý", href: "/manage" });
+  }
 
   async function handleLogout() {
     await logout();
@@ -81,22 +86,33 @@ export function Header() {
           </Link>
 
           {isAuthenticated ? (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/account"
-                className="flex h-12 min-w-0 items-center gap-2 rounded-2xl bg-[#23140c] px-4 text-sm font-black text-white shadow-lg transition-all hover:bg-[#ff6b00] active:scale-95"
+            <div className="relative group">
+              <motion.div
+                className="flex h-12 items-center gap-2 rounded-2xl bg-[#23140c] px-4 text-sm font-black text-white shadow-lg transition-all hover:bg-[#ff6b00] active:scale-95 cursor-pointer"
               >
                 <User size={20} weight="bold" />
                 <span className="hidden max-w-28 truncate sm:inline">{user?.username}</span>
-              </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="grid size-12 place-items-center rounded-2xl bg-orange-50 text-[#ff6b00] transition-all hover:bg-orange-100 active:scale-95"
-                aria-label="Đăng xuất"
-              >
-                <SignOut size={22} weight="bold" />
-              </button>
+              </motion.div>
+
+              {/* Dropdown Menu */}
+              <div className="absolute right-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="w-48 overflow-hidden rounded-2xl border border-black/5 bg-white p-2 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] backdrop-blur-xl">
+                  <Link
+                    href="/account"
+                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#23140c] transition-colors hover:bg-orange-50 hover:text-[#ff6b00]"
+                  >
+                    <User size={18} weight="bold" />
+                    Tài khoản
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-red-500 transition-colors hover:bg-red-50"
+                  >
+                    <SignOut size={18} weight="bold" />
+                    Đăng xuất
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             <Link

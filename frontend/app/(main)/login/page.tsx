@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { ApiError } from "@/lib/auth";
+import { ApiError, getPostLoginRedirectPath } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { EnvelopeSimple, LockSimple, ArrowRight, GithubLogo, GoogleLogo } from "@phosphor-icons/react";
 
@@ -28,8 +28,8 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
     try {
-      await login({ email: email.trim(), password });
-      router.push("/");
+      const session = await login({ email: email.trim(), password });
+      router.push(getPostLoginRedirectPath(session.user.role));
       router.refresh();
     } catch (caughtError) {
       const message = caughtError instanceof ApiError ? caughtError.message : "Không thể đăng nhập lúc này.";

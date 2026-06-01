@@ -18,6 +18,25 @@ export type AuthSession = {
   accessToken: string;
 };
 
+export function normalizeRole(role?: string | null) {
+  return role?.trim().toLowerCase() ?? "";
+}
+
+const MANAGE_ROLES = ["restaurant", "admin"];
+
+const POST_LOGIN_REDIRECT_BY_ROLE: Record<string, string> = {
+  restaurant: "/manage",
+  admin: "/manage",
+};
+
+export function canAccessManage(role?: string | null) {
+  return MANAGE_ROLES.includes(normalizeRole(role));
+}
+
+export function getPostLoginRedirectPath(role?: string | null) {
+  return POST_LOGIN_REDIRECT_BY_ROLE[normalizeRole(role)] ?? "/";
+}
+
 type AuthResponse = {
   statusCode: number;
   message: string;

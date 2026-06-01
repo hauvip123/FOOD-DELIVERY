@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Star,
   Clock,
@@ -12,7 +13,8 @@ import {
   MagnifyingGlass,
   FadersHorizontal,
   ArrowRight,
-  CaretDown
+  CaretDown,
+  Plus
 } from "@phosphor-icons/react";
 
 const ALL_RESTAURANTS = [
@@ -105,6 +107,7 @@ const ALL_RESTAURANTS = [
 const CUISINES = ["Tất cả", "Cơm nhà", "Mì & Phở", "Salad", "Trà sữa", "Bún & Hủ tiếu"];
 
 export default function RestaurantsPage() {
+  const { user } = useAuth();
   const [activeCuisine, setActiveCuisine] = useState("Tất cả");
   const [searchQuery, setSearchQuery] = useState("");
 
