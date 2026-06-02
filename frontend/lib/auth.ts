@@ -26,7 +26,7 @@ const MANAGE_ROLES = ["restaurant", "admin"];
 
 const POST_LOGIN_REDIRECT_BY_ROLE: Record<string, string> = {
   restaurant: "/manage",
-  admin: "/manage",
+  admin: "/admin",
 };
 
 export function canAccessManage(role?: string | null) {

@@ -6,6 +6,15 @@ type ApiResponse<T> = {
   data: T;
 };
 
+type PaginatedApiResponse<T> = ApiResponse<T> & {
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 export type RestaurantPayload = {
   name: string;
   address: string;
@@ -35,6 +44,46 @@ export type RestaurantResponse = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type FindRestaurantsParams = {
+  search?: string;
+  city?: string;
+  address?: string;
+  cuisine?: string;
+  isOpen?: boolean;
+  minRating?: number;
+  maxRating?: number;
+  sortBy?: "name" | "ratingAverage" | "createdAt";
+  sortOrder?: "ASC" | "DESC";
+  page?: number;
+  limit?: number;
+};
+
+export type RestaurantsListResult = {
+  data: RestaurantResponse[];
+  meta: PaginatedApiResponse<RestaurantResponse[]>["meta"];
+};
+
+export async function getRestaurants(params: FindRestaurantsParams = {}): Promise<RestaurantsListResult> {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+    searchParams.set(key, String(value));
+  });
+
+  const queryString = searchParams.toString();
+  const response = await apiRequest<PaginatedApiResponse<RestaurantResponse[]>>(
+    "/restaurants" + (queryString ? `?${queryString}` : ""),
+  );
+
+  return {
+    data: response.data,
+    meta: response.meta,
+  };
+}
 
 export async function createRestaurant(payload: RestaurantPayload) {
   const response = await apiRequest<ApiResponse<RestaurantResponse>>("/restaurants", {

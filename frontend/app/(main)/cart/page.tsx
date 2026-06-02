@@ -21,7 +21,7 @@ import {
 import { useCart, CartItem } from "@/contexts/CartContext";
 
 export default function CartPage() {
-  const { items, addToCart, removeFromCart, clearCart, totalPrice, totalItems } = useCart();
+  const { items, addToCart, removeFromCart, clearCart, totalPrice, totalItems, errorMessage } = useCart();
 
   // Group items by restaurant
   const groupedItems = useMemo(() => {
@@ -90,6 +90,12 @@ export default function CartPage() {
             Xóa tất cả
           </button>
         </header>
+
+        {errorMessage && (
+          <div className="mb-8 rounded-[1.5rem] bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
+            {errorMessage}
+          </div>
+        )}
 
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
           {/* Left Column: Items List */}

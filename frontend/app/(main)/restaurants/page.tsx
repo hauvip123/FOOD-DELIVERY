@@ -1,291 +1,442 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { useAuth } from "@/contexts/AuthContext";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  Star,
-  Clock,
-  Truck,
-  MapPin,
-  MagnifyingGlass,
-  FadersHorizontal,
   ArrowRight,
-  CaretDown,
-  Plus
+  Buildings,
+  CaretLeft,
+  CaretRight,
+  Clock,
+  FadersHorizontal,
+  FunnelSimple,
+  MagnifyingGlass,
+  MapPin,
+  Star,
+  Storefront,
+  X,
 } from "@phosphor-icons/react";
+import { ApiError } from "@/lib/api";
+import { getRestaurants, RestaurantResponse } from "@/lib/restaurant";
 
-const ALL_RESTAURANTS = [
-  {
-    id: 1,
-    name: "Bếp Nắng Sài Gòn",
-    cuisine: "Cơm nhà, món kho, canh nóng",
-    rating: "4.8",
-    reviews: "1.2k",
-    time: "25-35",
-    delivery: "Miễn phí",
-    distance: "1.8 km",
-    isOpen: true,
-    image: "https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&q=80&w=1000",
-    tag: "Được yêu thích nhất",
-    color: "bg-orange-500",
-  },
-  {
-    id: 2,
-    name: "Mì Lửa Chợ Lớn",
-    cuisine: "Mì bò, hoành thánh, xá xíu",
-    rating: "4.7",
-    reviews: "850",
-    time: "20-30",
-    delivery: "12k",
-    distance: "2.4 km",
-    isOpen: true,
-    image: "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&q=80&w=800",
-    tag: "Đang giảm 20%",
-    color: "bg-red-500",
-  },
-  {
-    id: 3,
-    name: "Green Bowl Lab",
-    cuisine: "Salad, poke, nước ép",
-    rating: "4.9",
-    reviews: "420",
-    time: "30-40",
-    delivery: "18k",
-    distance: "3.1 km",
-    isOpen: false,
-    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=800",
-    tag: "Bữa trưa nhẹ",
-    color: "bg-emerald-500",
-  },
-  {
-    id: 4,
-    name: "Tiệm Nước Mơ",
-    cuisine: "Trà sữa, nước ép, sinh tố",
-    rating: "4.6",
-    reviews: "1.5k",
-    time: "15-25",
-    delivery: "10k",
-    distance: "0.8 km",
-    isOpen: true,
-    image: "https://images.unsplash.com/photo-1544145945-f904253d0c71?auto=format&fit=crop&q=80&w=800",
-    tag: "Quán mới",
-    color: "bg-pink-500",
-  },
-  {
-    id: 5,
-    name: "Hủ Tiếu Nam Vang 1990",
-    cuisine: "Hủ tiếu, bánh bao, điểm tâm",
-    rating: "4.5",
-    reviews: "2.1k",
-    time: "25-35",
-    delivery: "Miễn phí",
-    distance: "4.2 km",
-    isOpen: true,
-    image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&q=80&w=800",
-    tag: "Giao nhanh",
-    color: "bg-amber-600",
-  },
-  {
-    id: 6,
-    name: "Phở Ông Hùng",
-    cuisine: "Phở bò, phở gà, quẩy giòn",
-    rating: "4.4",
-    reviews: "3.2k",
-    time: "20-30",
-    delivery: "15k",
-    distance: "2.1 km",
-    isOpen: true,
-    image: "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&q=80&w=800",
-    tag: "Truyền thống",
-    color: "bg-blue-600",
-  }
+type SortValue = "createdAt-DESC" | "ratingAverage-DESC" | "name-ASC";
+type OpenFilter = "all" | "open" | "closed";
+
+const FALLBACK_IMAGE = "https://picsum.photos/seed/hungerdash-restaurant/900/650";
+
+const CUISINE_PRESETS = ["Cơm", "Phở", "Bún", "Mì", "Pizza", "Trà sữa"];
+const CITY_PRESETS = ["Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Cần Thơ"];
+
+const sortOptions: { label: string; value: SortValue }[] = [
+  { label: "Mới nhất", value: "createdAt-DESC" },
+  { label: "Đánh giá cao", value: "ratingAverage-DESC" },
+  { label: "Tên A-Z", value: "name-ASC" },
 ];
 
-const CUISINES = ["Tất cả", "Cơm nhà", "Mì & Phở", "Salad", "Trà sữa", "Bún & Hủ tiếu"];
+function useDebouncedValue(value: string, delay = 450) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delay);
+    return () => window.clearTimeout(timeoutId);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+function buildImageUrl(restaurant: RestaurantResponse) {
+  if (restaurant.imgage?.trim()) {
+    return restaurant.imgage;
+  }
+  return FALLBACK_IMAGE.replace("hungerdash-restaurant", `restaurant-${restaurant.id}`);
+}
+
+function formatRating(value: number) {
+  return Number(value || 0).toFixed(1);
+}
+
+function getSortParts(sort: SortValue) {
+  const [sortBy, sortOrder] = sort.split("-") as ["createdAt" | "ratingAverage" | "name", "ASC" | "DESC"];
+  return { sortBy, sortOrder };
+}
 
 export default function RestaurantsPage() {
-  const { user } = useAuth();
-  const [activeCuisine, setActiveCuisine] = useState("Tất cả");
+  const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [city, setCity] = useState("");
+  const [address, setAddress] = useState("");
+  const [cuisine, setCuisine] = useState("");
+  const [openFilter, setOpenFilter] = useState<OpenFilter>("all");
+  const [minRating, setMinRating] = useState("");
+  const [sort, setSort] = useState<SortValue>("createdAt-DESC");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const filteredRestaurants = ALL_RESTAURANTS.filter(res => {
-    const matchesCuisine = activeCuisine === "Tất cả" || res.cuisine.toLowerCase().includes(activeCuisine.toLowerCase()) || (activeCuisine === "Cơm nhà" && res.cuisine.includes("Cơm"));
-    const matchesSearch = res.name.toLowerCase().includes(searchQuery.toLowerCase()) || res.cuisine.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCuisine && matchesSearch;
-  });
+  const debouncedSearch = useDebouncedValue(searchQuery);
+
+  const activeFilterCount = useMemo(() => {
+    return [debouncedSearch, city, address, cuisine, openFilter !== "all", minRating].filter(Boolean).length;
+  }, [debouncedSearch, city, address, cuisine, openFilter, minRating]);
+
+  useEffect(() => {
+    let isCurrentRequest = true;
+    const { sortBy, sortOrder } = getSortParts(sort);
+
+    async function loadRestaurants() {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      try {
+        const result = await getRestaurants({
+          search: debouncedSearch.trim() || undefined,
+          city: city.trim() || undefined,
+          address: address.trim() || undefined,
+          cuisine: cuisine.trim() || undefined,
+          isOpen: openFilter === "all" ? undefined : openFilter === "open",
+          minRating: minRating ? Number(minRating) : undefined,
+          sortBy,
+          sortOrder,
+          page,
+          limit: 9,
+        });
+
+        if (!isCurrentRequest) {
+          return;
+        }
+
+        setRestaurants(result.data);
+        setTotal(result.meta.total);
+        setTotalPages(Math.max(result.meta.totalPages, 1));
+      } catch (error) {
+        if (!isCurrentRequest) {
+          return;
+        }
+        setRestaurants([]);
+        setTotal(0);
+        setTotalPages(1);
+        setErrorMessage(error instanceof ApiError ? error.message : "Không thể tải danh sách nhà hàng.");
+      } finally {
+        if (isCurrentRequest) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadRestaurants();
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [debouncedSearch, city, address, cuisine, openFilter, minRating, sort, page]);
+
+  function resetToFirstPage(action: () => void) {
+    setPage(1);
+    action();
+  }
+
+  function clearFilters() {
+    setSearchQuery("");
+    setCity("");
+    setAddress("");
+    setCuisine("");
+    setOpenFilter("all");
+    setMinRating("");
+    setSort("createdAt-DESC");
+    setPage(1);
+  }
 
   return (
     <div className="min-h-screen bg-[#fffcf8]">
-      {/* Header Section */}
-      <section className="bg-white pb-16 pt-32 lg:pb-24 lg:pt-40">
-        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-10">
-          <div className="mb-12 max-w-3xl">
-            <h1 className="text-5xl font-black tracking-tighter text-[#23140c] sm:text-7xl">
-              Khám phá tinh hoa ẩm thực quanh bạn
-            </h1>
-            <p className="mt-6 text-xl font-medium leading-relaxed text-[#23140c]/50">
-              Hơn 1,000 quán ăn đã sẵn sàng phục vụ. Từ món cơm nhà ấm bụng đến những bát mì nóng hổi, tất cả chỉ cách bạn một chạm.
-            </p>
-          </div>
-
-          {/* Search & Filter Bar */}
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <div className="pointer-events-none absolute inset-y-0 left-6 flex items-center text-[#23140c]/30">
-                <MagnifyingGlass size={24} weight="bold" />
+      <section className="border-b border-[#23140c]/5 bg-white pt-24">
+        <div className="mx-auto max-w-[1400px] px-4 pb-10 sm:px-6 lg:px-10 lg:pb-14">
+          <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+            <div className="max-w-3xl">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#ff6b00] ring-1 ring-orange-100">
+                <Storefront size={16} weight="bold" />
+                Nhà hàng quanh bạn
               </div>
-              <input
-                type="text"
-                placeholder="Tìm tên quán hoặc món ăn..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-16 w-full rounded-2xl bg-[#fff7ed] pl-16 pr-6 text-lg font-bold text-[#23140c] outline-none ring-2 ring-transparent transition-all focus:bg-white focus:ring-orange-500/20"
-              />
+              <h1 className="text-4xl font-black tracking-tight text-[#23140c] sm:text-6xl">
+                Chọn đúng quán nhanh hơn
+              </h1>
+              <p className="mt-5 max-w-2xl text-base font-medium leading-relaxed text-[#704322]/70 sm:text-lg">
+                Tìm tên quán riêng, rồi lọc theo địa chỉ, thành phố, loại món và trạng thái mở cửa bằng API restaurants.
+              </p>
             </div>
 
-            <div className="flex gap-4">
-              <button className="flex h-16 items-center gap-3 rounded-2xl bg-white px-8 text-lg font-black text-[#23140c] shadow-sm ring-1 ring-black/5 hover:bg-[#fff7ed]">
-                <FadersHorizontal size={24} weight="bold" />
-                Sắp xếp
-                <CaretDown size={18} weight="bold" className="text-[#23140c]/30" />
-              </button>
+            <div className="grid grid-cols-3 gap-3 rounded-[2rem] border border-[#23140c]/5 bg-[#fff7ed] p-3">
+              <div className="rounded-[1.5rem] bg-white p-4 shadow-[0_12px_25px_-18px_rgba(35,20,12,0.35)]">
+                <p className="text-2xl font-black tracking-tight text-[#23140c]">{total}</p>
+                <p className="mt-1 text-xs font-bold text-[#704322]/60">Kết quả</p>
+              </div>
+              <div className="rounded-[1.5rem] bg-white p-4 shadow-[0_12px_25px_-18px_rgba(35,20,12,0.35)]">
+                <p className="text-2xl font-black tracking-tight text-[#23140c]">{activeFilterCount}</p>
+                <p className="mt-1 text-xs font-bold text-[#704322]/60">Bộ lọc</p>
+              </div>
+              <div className="rounded-[1.5rem] bg-[#23140c] p-4 text-white shadow-[0_12px_25px_-18px_rgba(35,20,12,0.7)]">
+                <p className="text-2xl font-black tracking-tight">{page}</p>
+                <p className="mt-1 text-xs font-bold text-white/60">Trang</p>
+              </div>
             </div>
           </div>
 
-          {/* Cuisine Filters */}
-          <div className="mt-8 flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-            {CUISINES.map((cuisine) => (
-              <button
-                key={cuisine}
-                onClick={() => setActiveCuisine(cuisine)}
-                className={`whitespace-nowrap rounded-2xl px-6 py-3.5 text-sm font-black transition-all ${activeCuisine === cuisine
-                    ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20"
-                    : "bg-white text-[#23140c]/60 shadow-sm ring-1 ring-black/5 hover:ring-orange-500/20"
-                  }`}
-              >
-                {cuisine}
-              </button>
-            ))}
+          <div className="mt-10 rounded-[2rem] border border-[#23140c]/5 bg-[#fffcf8] p-3 shadow-[0_20px_45px_-30px_rgba(35,20,12,0.35)]">
+            <div className="grid gap-3 lg:grid-cols-[1fr_190px_190px_190px_160px]">
+              <label className="group relative block">
+                <span className="sr-only">Tìm kiếm nhà hàng</span>
+                <MagnifyingGlass className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-[#704322]/35" size={22} weight="bold" />
+                <input
+                  value={searchQuery}
+                  onChange={(event) => resetToFirstPage(() => setSearchQuery(event.target.value))}
+                  placeholder="Tìm tên nhà hàng..."
+                  className="h-14 w-full rounded-[1.25rem] border border-transparent bg-white pl-14 pr-5 text-sm font-bold text-[#23140c] shadow-sm transition-all placeholder:text-[#704322]/35 focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
+                />
+              </label>
+
+              <label className="relative block">
+                <span className="sr-only">Địa chỉ</span>
+                <MapPin className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#704322]/35" size={20} weight="bold" />
+                <input
+                  value={address}
+                  onChange={(event) => resetToFirstPage(() => setAddress(event.target.value))}
+                  placeholder="Địa chỉ"
+                  className="h-14 w-full rounded-[1.25rem] border border-transparent bg-white pl-12 pr-4 text-sm font-bold text-[#23140c] shadow-sm transition-all placeholder:text-[#704322]/35 focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
+                />
+              </label>
+
+              <label className="relative block">
+                <span className="sr-only">Thành phố</span>
+                <MapPin className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#704322]/35" size={20} weight="bold" />
+                <input
+                  value={city}
+                  onChange={(event) => resetToFirstPage(() => setCity(event.target.value))}
+                  placeholder="Thành phố"
+                  className="h-14 w-full rounded-[1.25rem] border border-transparent bg-white pl-12 pr-4 text-sm font-bold text-[#23140c] shadow-sm transition-all placeholder:text-[#704322]/35 focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
+                />
+              </label>
+
+              <label className="relative block">
+                <span className="sr-only">Loại món</span>
+                <FunnelSimple className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#704322]/35" size={20} weight="bold" />
+                <input
+                  value={cuisine}
+                  onChange={(event) => resetToFirstPage(() => setCuisine(event.target.value))}
+                  placeholder="Loại món"
+                  className="h-14 w-full rounded-[1.25rem] border border-transparent bg-white pl-12 pr-4 text-sm font-bold text-[#23140c] shadow-sm transition-all placeholder:text-[#704322]/35 focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
+                />
+              </label>
+
+              <label className="relative block">
+                <span className="sr-only">Sắp xếp</span>
+                <FadersHorizontal className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#704322]/35" size={20} weight="bold" />
+                <select
+                  value={sort}
+                  onChange={(event) => resetToFirstPage(() => setSort(event.target.value as SortValue))}
+                  className="h-14 w-full appearance-none rounded-[1.25rem] border border-transparent bg-white pl-12 pr-9 text-sm font-black text-[#23140c] shadow-sm transition-all focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="mt-3 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {CITY_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => resetToFirstPage(() => setCity(city === preset ? "" : preset))}
+                    className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 ${city === preset ? "bg-[#23140c] text-white" : "bg-white text-[#704322]/70 ring-1 ring-[#23140c]/5 hover:text-[#ff6b00]"}`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+                {CUISINE_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => resetToFirstPage(() => setCuisine(cuisine === preset ? "" : preset))}
+                    className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 ${cuisine === preset ? "bg-[#ff6b00] text-white" : "bg-white text-[#704322]/70 ring-1 ring-[#23140c]/5 hover:text-[#ff6b00]"}`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {(["all", "open", "closed"] as OpenFilter[]).map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => resetToFirstPage(() => setOpenFilter(value))}
+                    className={`rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 ${openFilter === value ? "bg-emerald-600 text-white" : "bg-white text-[#704322]/70 ring-1 ring-[#23140c]/5 hover:text-emerald-700"}`}
+                  >
+                    {value === "all" ? "Tất cả" : value === "open" ? "Đang mở" : "Tạm nghỉ"}
+                  </button>
+                ))}
+                <button
+                  onClick={() => resetToFirstPage(() => setMinRating(minRating ? "" : "4"))}
+                  className={`rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 ${minRating ? "bg-amber-500 text-white" : "bg-white text-[#704322]/70 ring-1 ring-[#23140c]/5 hover:text-amber-600"}`}
+                >
+                  <span className="inline-flex items-center gap-1"><Star size={13} weight="fill" /> Từ 4.0</span>
+                </button>
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#23140c]/5 px-4 py-2 text-xs font-black text-[#704322] transition-all hover:bg-[#23140c] hover:text-white active:scale-95"
+                  >
+                    <X size={13} weight="bold" />
+                    Xóa lọc
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Results Grid */}
-      <section className="mx-auto max-w-[1400px] px-4 pb-32 sm:px-6 lg:px-10">
-        <div className="mb-10 flex items-end justify-between">
-          <h2 className="text-2xl font-black tracking-tight text-[#23140c]">
-            {filteredRestaurants.length} kết quả phù hợp
-          </h2>
+      <section className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6 lg:px-10 lg:py-14">
+        <div className="mb-7 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest text-[#ff6b00]">Danh sách nhà hàng</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-[#23140c] sm:text-3xl">
+              {isLoading ? "Đang tải kết quả" : `${total} nhà hàng phù hợp`}
+            </h2>
+          </div>
+          <p className="text-sm font-bold text-[#704322]/55">Hiển thị tối đa 9 nhà hàng mỗi trang</p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {filteredRestaurants.map((res, idx) => (
-            <motion.article
-              key={res.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.05 }}
-              className={`group flex flex-col overflow-hidden rounded-[2.5rem] bg-white p-4 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.08)] ring-1 ring-black/5 transition-all hover:shadow-[0_30px_60px_-15px_rgba(255,107,0,0.15)] ${!res.isOpen ? "grayscale-[0.4] opacity-80" : ""
-                }`}
-            >
-              <div className="relative h-64 w-full overflow-hidden rounded-[2rem]">
-                <Image
-                  src={res.image}
-                  alt={res.name}
-                  fill
-                  className="object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute left-4 top-4 flex flex-col gap-2">
-                  <span className={`rounded-full ${res.color} px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg`}>
-                    {res.tag}
-                  </span>
+        {errorMessage && (
+          <div className="mb-8 rounded-[1.5rem] border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
+            {errorMessage}
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="overflow-hidden rounded-[2rem] bg-white p-4 ring-1 ring-[#23140c]/5">
+                <div className="h-56 animate-pulse rounded-[1.5rem] bg-[#f1e7dc]" />
+                <div className="space-y-3 p-3 pt-5">
+                  <div className="h-6 w-2/3 animate-pulse rounded-full bg-[#f1e7dc]" />
+                  <div className="h-4 w-full animate-pulse rounded-full bg-[#f1e7dc]" />
+                  <div className="h-4 w-4/5 animate-pulse rounded-full bg-[#f1e7dc]" />
+                  <div className="h-12 w-full animate-pulse rounded-[1rem] bg-[#f1e7dc]" />
                 </div>
-                {!res.isOpen && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-                    <span className="rounded-2xl bg-white px-6 py-2.5 text-sm font-black text-[#23140c]">
-                      Đã đóng cửa
-                    </span>
-                  </div>
-                )}
               </div>
-
-              <div className="flex flex-1 flex-col justify-between py-6 px-2">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        {res.isOpen && (
-                          <span className="relative flex size-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
-                          </span>
-                        )}
-                        <h3 className="text-2xl font-black tracking-tight text-[#23140c]">
-                          {res.name}
-                        </h3>
-                      </div>
-                      <p className="mt-1 text-sm font-medium leading-relaxed text-[#704322]/70">
-                        {res.cuisine}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-black text-[#ff6b00]">
-                      <Star size={18} weight="fill" />
-                      {res.rating}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-3">
-                    <div className="flex items-center gap-2 rounded-2xl bg-[#fff7ed] px-4 py-2.5 text-xs font-bold text-[#704322]">
-                      <Clock size={16} weight="bold" />
-                      {res.time} phút
-                    </div>
-                    <div className="flex items-center gap-2 rounded-2xl bg-[#fff7ed] px-4 py-2.5 text-xs font-bold text-[#704322]">
-                      <Truck size={16} weight="bold" />
-                      {res.delivery}
-                    </div>
-                    <div className="flex items-center gap-2 rounded-2xl bg-[#fff7ed] px-4 py-2.5 text-xs font-bold text-[#704322]">
-                      <MapPin size={16} weight="bold" />
-                      {res.distance}
-                    </div>
-                  </div>
-                </div>
-
-                <Link
-                  href={"/restaurants/" + res.id}
-                  className={`mt-8 inline-flex h-14 w-full items-center justify-center rounded-2xl text-sm font-black transition-all active:scale-95 ${res.isOpen
-                      ? "bg-[#23140c] text-white hover:bg-orange-500"
-                      : "bg-[#704322]/10 text-[#704322]/40 pointer-events-none"
-                    }`}
+            ))}
+          </div>
+        ) : restaurants.length > 0 ? (
+          <AnimatePresence mode="popLayout">
+            <motion.div layout className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {restaurants.map((restaurant, index) => (
+                <motion.article
+                  layout
+                  key={restaurant.id}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 12 }}
+                  transition={{ delay: index * 0.035, type: "spring", stiffness: 140, damping: 22 }}
+                  className={`group overflow-hidden rounded-[2rem] bg-white p-4 shadow-[0_18px_45px_-28px_rgba(35,20,12,0.45)] ring-1 ring-[#23140c]/5 transition-all hover:-translate-y-1 hover:shadow-[0_24px_55px_-28px_rgba(255,107,0,0.35)] ${restaurant.isOpen ? "" : "opacity-75 grayscale-[0.25]"}`}
                 >
-                  {res.isOpen ? (
-                    <div className="flex items-center gap-2">
-                      Xem thực đơn
-                      <ArrowRight size={20} weight="bold" />
+                  <div className="relative h-56 overflow-hidden rounded-[1.5rem] bg-[#f1e7dc]">
+                    <img
+                      src={buildImageUrl(restaurant)}
+                      alt={restaurant.name}
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                      <span className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-sm ${restaurant.isOpen ? "bg-emerald-600" : "bg-[#704322]"}`}>
+                        {restaurant.isOpen ? "Đang mở" : "Tạm nghỉ"}
+                      </span>
+                      <span className="rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#23140c] backdrop-blur">
+                        {restaurant.city}
+                      </span>
                     </div>
-                  ) : "Tạm nghỉ"}
-                </Link>
-              </div>
-            </motion.article>
-          ))}
-        </div>
+                  </div>
 
-        {filteredRestaurants.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-40 text-center">
-            <div className="mb-8 rounded-full bg-orange-50 p-12 text-orange-200">
-              <MagnifyingGlass size={80} weight="bold" />
+                  <div className="flex min-h-[270px] flex-col p-3 pt-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <h3 className="line-clamp-2 text-2xl font-black tracking-tight text-[#23140c]">
+                          {restaurant.name}
+                        </h3>
+                        <p className="mt-2 line-clamp-2 text-sm font-bold leading-relaxed text-[#704322]/65">
+                          {restaurant.cuisine}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-black text-[#ff6b00]">
+                        <Star size={17} weight="fill" />
+                        {formatRating(restaurant.ratingAverage)}
+                      </div>
+                    </div>
+
+                    <p className="mt-4 line-clamp-2 text-sm font-medium leading-relaxed text-[#704322]/55">
+                      {restaurant.description || restaurant.address}
+                    </p>
+
+                    <div className="mt-5 grid grid-cols-2 gap-2 text-xs font-black text-[#704322]">
+                      <div className="flex items-center gap-2 rounded-[1rem] bg-[#fff7ed] px-3 py-2.5">
+                        <MapPin size={16} weight="bold" />
+                        <span className="truncate">{restaurant.address}</span>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-[1rem] bg-[#fff7ed] px-3 py-2.5">
+                        <Clock size={16} weight="bold" />
+                        <span>{restaurant.openTime} - {restaurant.closeTime}</span>
+                      </div>
+                    </div>
+
+                    <Link
+                      href={`/restaurants/${restaurant.id}`}
+                      className={`mt-auto inline-flex h-13 items-center justify-center gap-2 rounded-[1.1rem] text-sm font-black transition-all active:scale-95 ${restaurant.isOpen ? "bg-[#23140c] text-white hover:bg-[#ff6b00]" : "pointer-events-none bg-[#23140c]/5 text-[#704322]/40"}`}
+                    >
+                      {restaurant.isOpen ? "Xem thực đơn" : "Đang tạm nghỉ"}
+                      {restaurant.isOpen && <ArrowRight size={18} weight="bold" />}
+                    </Link>
+                  </div>
+                </motion.article>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-[#23140c]/10 bg-white px-6 py-24 text-center">
+            <div className="mb-6 grid size-24 place-items-center rounded-[2rem] bg-orange-50 text-[#ff6b00]">
+              <Buildings size={48} weight="bold" />
             </div>
-            <h3 className="text-3xl font-black text-[#23140c]">Không tìm thấy quán nào</h3>
-            <p className="mt-4 max-w-md text-lg font-medium text-[#23140c]/40">
-              Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc để xem thêm nhiều lựa chọn nhé.
+            <h3 className="text-2xl font-black tracking-tight text-[#23140c]">Không có nhà hàng phù hợp</h3>
+            <p className="mt-3 max-w-md text-sm font-bold leading-relaxed text-[#704322]/55">
+              Thử đổi từ khóa, bỏ bớt bộ lọc hoặc xem lại thành phố và loại món đang chọn.
             </p>
             <button
-              onClick={() => { setActiveCuisine("Tất cả"); setSearchQuery(""); }}
-              className="mt-10 rounded-2xl bg-[#23140c] px-10 py-4 font-black text-white hover:bg-orange-500 active:scale-95"
+              onClick={clearFilters}
+              className="mt-7 inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
             >
-              Xem tất cả quán
+              Xem tất cả nhà hàng
+            </button>
+          </div>
+        )}
+
+        {!isLoading && totalPages > 1 && (
+          <div className="mt-10 flex items-center justify-center gap-3">
+            <button
+              onClick={() => setPage((currentPage) => Math.max(currentPage - 1, 1))}
+              disabled={page === 1}
+              className="grid size-12 place-items-center rounded-[1rem] bg-white text-[#23140c] ring-1 ring-[#23140c]/5 transition-all hover:text-[#ff6b00] disabled:pointer-events-none disabled:opacity-40 active:scale-95"
+            >
+              <CaretLeft size={20} weight="bold" />
+            </button>
+            <div className="rounded-[1rem] bg-white px-5 py-3 text-sm font-black text-[#704322] ring-1 ring-[#23140c]/5">
+              Trang {page} / {totalPages}
+            </div>
+            <button
+              onClick={() => setPage((currentPage) => Math.min(currentPage + 1, totalPages))}
+              disabled={page === totalPages}
+              className="grid size-12 place-items-center rounded-[1rem] bg-white text-[#23140c] ring-1 ring-[#23140c]/5 transition-all hover:text-[#ff6b00] disabled:pointer-events-none disabled:opacity-40 active:scale-95"
+            >
+              <CaretRight size={20} weight="bold" />
             </button>
           </div>
         )}

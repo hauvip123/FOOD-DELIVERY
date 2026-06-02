@@ -11,7 +11,7 @@ import {
   CaretLeft,
   House,
   Buildings,
-  CookingPot
+  Star
 } from "@phosphor-icons/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
@@ -25,7 +25,7 @@ export function ManageSidebar() {
     { name: "Tổng quan", href: "/manage", icon: ChartPieSlice },
     { name: "Nhà hàng của tôi", href: "/manage/restaurants", icon: Buildings },
     { name: "Đơn hàng", href: "/manage/orders", icon: ListChecks },
-    { name: "Thực đơn", href: "/manage/menu", icon: CookingPot },
+    { name: "Đánh giá", href: "/manage/reviews", icon: Star },
     { name: "Tài khoản", href: "/manage/account", icon: User },
   ];
 

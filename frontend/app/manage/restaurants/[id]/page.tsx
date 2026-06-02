@@ -18,19 +18,19 @@ import {
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { getRestaurantById, RestaurantResponse } from "@/lib/restaurant";
-import { 
-  getAllCategories, 
-  createCategory, 
-  deleteCategory, 
-  updateCategory, 
-  CategoryResponse 
+import {
+  getAllCategories,
+  createCategory,
+  deleteCategory,
+  updateCategory,
+  CategoryResponse
 } from "@/lib/category";
-import { 
-  getDishesByRestaurantId, 
-  createDish, 
-  deleteDish, 
-  updateDish, 
-  DishResponse 
+import {
+  getDishesByRestaurantId,
+  createDish,
+  deleteDish,
+  updateDish,
+  DishResponse
 } from "@/lib/dish";
 
 const FALLBACK_RESTAURANT_IMAGE = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop";
@@ -180,7 +180,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
           unoptimized
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute bottom-10 left-10 right-10 flex items-end justify-between">
           <div className="text-white">
             <Link href="/manage/restaurants" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-orange-400 hover:text-white transition-colors">
@@ -226,25 +226,25 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
               <Plus size={20} weight="bold" />
             </button>
           </div>
-          
+
           <div className="space-y-3">
             {categories.length === 0 ? (
               <p className="text-sm font-medium text-[#23140c]/40 italic">Chưa có danh mục nào.</p>
             ) : (
               categories.map((cat) => (
-                <div 
+                <div
                   key={cat.id}
                   className="group flex items-center justify-between rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-black/5 hover:ring-orange-500/20 transition-all"
                 >
                   <span className="font-bold text-[#23140c]">{cat.name}</span>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
+                    <button
                       onClick={() => { setEditingCategory(cat); setCategoryName(cat.name); setIsCategoryModalOpen(true); }}
                       className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
                     >
                       <PencilSimple size={18} weight="bold" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteCategory(cat.id)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
@@ -262,11 +262,11 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-black text-[#23140c]">Thực đơn món ăn</h2>
             <button
-              onClick={() => { 
+              onClick={() => {
                 if (categories.length === 0) return alert("Vui lòng tạo ít nhất một danh mục trước.");
-                setEditingDish(null); 
+                setEditingDish(null);
                 setDishForm({ name: "", price: 0, categoryId: categories[0].id, description: "", image: "" });
-                setIsDishModalOpen(true); 
+                setIsDishModalOpen(true);
               }}
               className="flex items-center gap-2 rounded-2xl bg-[#23140c] px-6 py-4 text-sm font-black text-white shadow-lg hover:bg-orange-500 transition-all active:scale-95"
             >
@@ -279,7 +279,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
             {dishes.length === 0 ? (
               <div className="col-span-full py-20 text-center bg-white rounded-[3rem] ring-1 ring-black/5">
                 <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-orange-50 text-orange-200">
-                   <CookingPot size={40} weight="bold" />
+                  <CookingPot size={40} weight="bold" />
                 </div>
                 <h3 className="text-xl font-black text-[#23140c]">Chưa có món ăn nào</h3>
                 <p className="mt-2 text-[#23140c]/40">Bắt đầu xây dựng thực đơn của bạn ngay bây giờ.</p>
@@ -305,28 +305,28 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                       <div className="flex items-start justify-between">
                         <h4 className="text-lg font-black text-[#23140c]">{dish.name}</h4>
                         <div className="flex gap-1">
-                           <button 
-                             onClick={() => {
-                               setEditingDish(dish);
-                               setDishForm({
-                                 name: dish.name,
-                                 price: dish.price,
-                                 categoryId: dish.categoryId,
-                                 description: dish.description ?? "",
-                                 image: dish.image ?? ""
-                               });
-                               setIsDishModalOpen(true);
-                             }}
-                             className="p-1.5 text-[#23140c]/40 hover:text-orange-500 transition-colors"
-                           >
-                             <PencilSimple size={18} weight="bold" />
-                           </button>
-                           <button 
-                             onClick={() => handleDeleteDish(dish.id)}
-                             className="p-1.5 text-[#23140c]/40 hover:text-red-500 transition-colors"
-                           >
-                             <Trash size={18} weight="bold" />
-                           </button>
+                          <button
+                            onClick={() => {
+                              setEditingDish(dish);
+                              setDishForm({
+                                name: dish.name,
+                                price: dish.price,
+                                categoryId: dish.categoryId,
+                                description: dish.description ?? "",
+                                image: dish.image ?? ""
+                              });
+                              setIsDishModalOpen(true);
+                            }}
+                            className="p-1.5 text-[#23140c]/40 hover:text-orange-500 transition-colors"
+                          >
+                            <PencilSimple size={18} weight="bold" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDish(dish.id)}
+                            className="p-1.5 text-[#23140c]/40 hover:text-red-500 transition-colors"
+                          >
+                            <Trash size={18} weight="bold" />
+                          </button>
                         </div>
                       </div>
                       <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">
@@ -340,7 +340,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                       <span className="text-lg font-black text-[#23140c]">
                         {(dish.price / 1000).toLocaleString()}k
                       </span>
-                      <button 
+                      <button
                         onClick={() => toggleDishAvailability(dish)}
                         className={`rounded-full px-4 py-1.5 text-[10px] font-black transition-all ${dish.isAvailable ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}
                       >
@@ -358,7 +358,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
       {/* Category Modal */}
       <AnimatePresence>
         {isCategoryModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -400,7 +400,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                   </button>
                   <button
                     type="submit"
-                    className="h-16 flex-[2] rounded-2xl bg-[#23140c] text-sm font-black text-white transition-all hover:bg-orange-500 active:scale-95"
+                    className="h-16 flex-2 rounded-2xl bg-[#23140c] text-sm font-black text-white transition-all hover:bg-orange-500 active:scale-95"
                   >
                     {editingCategory ? "Lưu thay đổi" : "Tạo danh mục"}
                   </button>
@@ -414,7 +414,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
       {/* Dish Modal */}
       <AnimatePresence>
         {isDishModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -431,7 +431,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
               <h3 className="text-4xl font-black tracking-tighter text-[#23140c]">
                 {editingDish ? "Chỉnh sửa món ăn" : "Món ăn mới"}
               </h3>
-              
+
               <form onSubmit={handleDishSubmit} className="mt-10 grid gap-8 md:grid-cols-2">
                 <div className="space-y-3">
                   <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
@@ -514,7 +514,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                   </button>
                   <button
                     type="submit"
-                    className="h-16 flex-[2] rounded-2xl bg-[#23140c] text-sm font-black text-white transition-all hover:bg-orange-500 active:scale-95"
+                    className="h-16 flex-2 rounded-2xl bg-[#23140c] text-sm font-black text-white transition-all hover:bg-orange-500 active:scale-95"
                   >
                     {editingDish ? "Lưu thay đổi" : "Thêm món"}
                   </button>
