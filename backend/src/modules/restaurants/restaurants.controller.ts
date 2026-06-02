@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { RestaurantsService } from './restaurants.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
+import { FindRestaurantsQueryDto } from './dto/find-restaurants-query.dto';
 
 
 @Controller('restaurants')
@@ -23,8 +24,8 @@ export class RestaurantsController {
     }
 
     @Get()
-    findAll() {
-        return this.restaurantService.findAll();
+    findAll(@Query() query: FindRestaurantsQueryDto) {
+        return this.restaurantService.findAll(query);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)

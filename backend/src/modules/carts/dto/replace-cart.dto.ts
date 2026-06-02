@@ -1,4 +1,6 @@
+import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -6,9 +8,10 @@ import {
   IsPositive,
   IsString,
   Min,
+  ValidateNested,
 } from 'class-validator';
 
-export class AddCartDto {
+export class ReplaceCartItemDto {
   @IsInt()
   @IsPositive()
   dishId: number;
@@ -32,4 +35,11 @@ export class AddCartDto {
   @IsString()
   @IsOptional()
   note?: string;
+}
+
+export class ReplaceCartDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ReplaceCartItemDto)
+  items: ReplaceCartItemDto[];
 }

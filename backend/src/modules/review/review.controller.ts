@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Query,
   Patch,
   Post,
   Req,
@@ -33,9 +34,34 @@ export class ReviewsController {
     return this.reviewsService.findAll();
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('restaurant', 'admin')
+  @Get('manage/my-reviews')
+  findManagedReviews(
+    @Req() req,
+    @Query('rating') rating?: string,
+    @Query('restaurantId') restaurantId?: string,
+  ) {
+    return this.reviewsService.findManagedReviews(
+      req.user.id,
+      req.user.role,
+      rating ? Number(rating) : undefined,
+      restaurantId ? Number(restaurantId) : undefined,
+    );
+  }
+
   @Get('restaurant/:restaurantId')
-  findByRestaurant(@Param('restaurantId', ParseIntPipe) restaurantId: number) {
-    return this.reviewsService.findByRestaurant(restaurantId);
+  findByRestaurant(
+    @Param('restaurantId', ParseIntPipe) restaurantId: number,
+    @Query('rating') rating?: string,
+  ) {
+    return this.reviewsService.findByRestaurant(restaurantId, rating ? Number(rating) : undefined);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('order/:orderId')
+  findByOrder(@Param('orderId', ParseIntPipe) orderId: number, @Req() req) {
+    return this.reviewsService.findByOrder(orderId, req.user.id);
   }
 
   @Get(':id')

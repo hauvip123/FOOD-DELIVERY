@@ -11,7 +11,7 @@ export class Order {
     @Column()
     restaurantId: number
 
-    @Column()
+    @Column({ nullable: true })
     deliveryPersonId: number
 
     @Column()

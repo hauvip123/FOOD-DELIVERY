@@ -4,6 +4,7 @@ import { Restaurant } from 'src/entity/restaurant.entity';
 import { Repository } from 'typeorm';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
+import { FindRestaurantsQueryDto } from './dto/find-restaurants-query.dto';
 
 
 @Injectable()
@@ -22,12 +23,60 @@ export class RestaurantsService {
         }
     }
 
-    async findAll() {
-        const restaurant = await this.restaurantRepository.find();
+    async findAll(query: FindRestaurantsQueryDto) {
+        const page = query.page ?? 1;
+        const limit = query.limit ?? 12;
+        const skip = (page - 1) * limit;
+        const sortBy = query.sortBy ?? 'createdAt';
+        const sortOrder = (query.sortOrder ?? 'DESC').toUpperCase() as 'ASC' | 'DESC';
+
+        const restaurantQuery = this.restaurantRepository.createQueryBuilder('restaurant');
+
+        if (query.search) {
+            const search = `%${query.search.trim()}%`;
+            restaurantQuery.andWhere('restaurant.name LIKE :search', { search });
+        }
+
+        if (query.city) {
+            restaurantQuery.andWhere('restaurant.city LIKE :city', { city: `%${query.city.trim()}%` });
+        }
+
+        if (query.address) {
+            restaurantQuery.andWhere('restaurant.address LIKE :address', { address: `%${query.address.trim()}%` });
+        }
+
+        if (query.cuisine) {
+            restaurantQuery.andWhere('restaurant.cuisine LIKE :cuisine', { cuisine: `%${query.cuisine.trim()}%` });
+        }
+
+        if (query.isOpen !== undefined) {
+            restaurantQuery.andWhere('restaurant.isOpen = :isOpen', { isOpen: query.isOpen });
+        }
+
+        if (query.minRating !== undefined) {
+            restaurantQuery.andWhere('restaurant.ratingAverage >= :minRating', { minRating: query.minRating });
+        }
+
+        if (query.maxRating !== undefined) {
+            restaurantQuery.andWhere('restaurant.ratingAverage <= :maxRating', { maxRating: query.maxRating });
+        }
+
+        const [restaurants, total] = await restaurantQuery
+            .orderBy(`restaurant.${sortBy}`, sortOrder)
+            .skip(skip)
+            .take(limit)
+            .getManyAndCount();
+
         return {
             statusCode: 200,
             message: "Restaurants found successfully",
-            data: restaurant
+            data: restaurants,
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            }
         }
     }
 

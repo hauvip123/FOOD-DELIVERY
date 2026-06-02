@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Review } from 'src/entity/review.entiry';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { Order } from 'src/entity/order.entity';
 import { Restaurant } from 'src/entity/restaurant.entity';
@@ -44,11 +44,12 @@ export class ReviewsService {
             rating: reviewData.rating,
             comment: reviewData.comment,
         })
-        await this.reviewRepository.save(review);
+        const savedReview = await this.reviewRepository.save(review);
         await this.updateRestaurantRating(order.restaurantId);
         return {
             statusCode: 201,
             message: 'Review created successfully',
+            data: savedReview,
         }
     }
 
@@ -66,9 +67,14 @@ export class ReviewsService {
         };
     }
 
-    async findByRestaurant(restaurantId: number) {
+    async findByRestaurant(restaurantId: number, rating?: number) {
+        const where: { restaurantId: number; rating?: number } = { restaurantId };
+        if (rating) {
+            where.rating = rating;
+        }
+
         const reviews = await this.reviewRepository.find({
-            where: { restaurantId },
+            where,
             order: {
                 createdAt: 'DESC',
             },
@@ -78,6 +84,76 @@ export class ReviewsService {
             statusCode: 200,
             message: 'Get restaurant reviews successfully',
             data: reviews,
+        };
+    }
+
+    async findManagedReviews(ownerId: number, role: string, rating?: number, restaurantId?: number) {
+        if (rating && (rating < 1 || rating > 5)) {
+            throw new BadRequestException('Rating must be between 1 and 5');
+        }
+
+        const restaurants = role === 'admin'
+            ? await this.restaurantRepository.find()
+            : await this.restaurantRepository.find({ where: { ownerId } });
+        const allowedRestaurantIds = restaurants.map(restaurant => restaurant.id);
+
+        if (allowedRestaurantIds.length === 0) {
+            return {
+                statusCode: 200,
+                message: 'Get managed reviews successfully',
+                data: [],
+            };
+        }
+
+        let selectedRestaurantIds = allowedRestaurantIds;
+        if (restaurantId) {
+            if (!allowedRestaurantIds.includes(restaurantId)) {
+                throw new ForbiddenException('You cannot view reviews for this restaurant');
+            }
+            selectedRestaurantIds = [restaurantId];
+        }
+
+        const where: { restaurantId: any; rating?: number } = {
+            restaurantId: In(selectedRestaurantIds),
+        };
+        if (rating) {
+            where.rating = rating;
+        }
+
+        const reviews = await this.reviewRepository.find({
+            where,
+            order: { createdAt: 'DESC' },
+        });
+        const restaurantById = new Map(restaurants.map(restaurant => [restaurant.id, restaurant]));
+
+        return {
+            statusCode: 200,
+            message: 'Get managed reviews successfully',
+            data: reviews.map(review => ({
+                ...review,
+                restaurantName: restaurantById.get(review.restaurantId)?.name ?? 'Nhà hàng',
+            })),
+        };
+    }
+    async findByOrder(orderId: number, userId: number) {
+        const order = await this.orderRepository.findOne({
+            where: { id: orderId }
+        });
+        if (!order) {
+            throw new NotFoundException('Order not found');
+        }
+        if (order.userId !== userId) {
+            throw new ForbiddenException("You can't view this order review");
+        }
+
+        const review = await this.reviewRepository.findOne({
+            where: { orderId }
+        });
+
+        return {
+            statusCode: 200,
+            message: 'Get order review successfully',
+            data: review,
         };
     }
     async findOne(id: number) {
