@@ -17,7 +17,7 @@ export function Header() {
   const navLinks = [
     { name: "Trang chủ", href: "/" },
     { name: "Nhà hàng", href: "/restaurants" },
-    { name: "Ưu đãi", href: "/deals" },
+    { name: "Thực đơn", href: "/menu" },
     { name: "Đơn hàng", href: "/orders" },
   ];
 

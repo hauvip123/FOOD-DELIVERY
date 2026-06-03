@@ -22,6 +22,15 @@ export type DishResponse = {
   isAvailable: boolean;
   createdAt: string;
   updatedAt: string;
+  restaurant?: {
+    id: number;
+    name: string;
+    city: string;
+  };
+  category?: {
+    id: number;
+    name: string;
+  };
 };
 
 export type CreateDishPayload = {
@@ -32,6 +41,11 @@ export type CreateDishPayload = {
   image?: string;
   description?: string;
 };
+
+export async function getAllDishes() {
+  const response = await apiRequest<ApiResponse<DishResponse[]>>("/dishes");
+  return response.data;
+}
 
 export async function createDish(payload: CreateDishPayload) {
   const response = await apiRequest<ApiResponse<DishResponse>>("/dishes", {

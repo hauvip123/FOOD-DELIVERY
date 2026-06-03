@@ -1,4 +1,6 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Restaurant } from "./restaurant.entity";
+import { Categories } from "./categories.entity";
 
 @Entity('dishes')
 export class Dish {
@@ -8,8 +10,16 @@ export class Dish {
     @Column()
     restaurantId: number;
 
+    @ManyToOne(() => Restaurant)
+    @JoinColumn({ name: 'restaurantId' })
+    restaurant: Restaurant;
+
     @Column()
     categoryId: number;
+
+    @ManyToOne(() => Categories)
+    @JoinColumn({ name: 'categoryId' })
+    category: Categories;
 
     @Column()
     name: string;

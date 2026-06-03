@@ -29,6 +29,13 @@ export class RestaurantsController {
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    @Get('admin/list')
+    findAllAdmin() {
+        return this.restaurantService.findAllAdmin();
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('admin', 'restaurant')
     @Get('my-restaurants')
     findMyRestaurants(@Req() req) {

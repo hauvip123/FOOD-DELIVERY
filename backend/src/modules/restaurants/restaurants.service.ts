@@ -23,6 +23,43 @@ export class RestaurantsService {
         }
     }
 
+    async findAllAdmin() {
+        const restaurants = await this.restaurantRepository.find({
+            relations: ['owner'],
+            order: { createdAt: 'DESC' },
+        });
+
+        // Fetch counts for all owners in this list
+        const ownerIds = Array.from(new Set(restaurants.map(r => r.ownerId).filter(id => id !== null)));
+        
+        let ownerCounts: Record<number, number> = {};
+        if (ownerIds.length > 0) {
+            const counts = await this.restaurantRepository
+                .createQueryBuilder('restaurant')
+                .select('restaurant.ownerId', 'ownerId')
+                .addSelect('COUNT(restaurant.id)', 'count')
+                .where('restaurant.ownerId IN (:...ownerIds)', { ownerIds })
+                .groupBy('restaurant.ownerId')
+                .getRawMany();
+            
+            ownerCounts = counts.reduce((acc, curr) => {
+                acc[curr.ownerId] = parseInt(curr.count);
+                return acc;
+            }, {});
+        }
+
+        const data = restaurants.map(res => ({
+            ...res,
+            ownerRestaurantsCount: res.ownerId ? (ownerCounts[res.ownerId] || 0) : 0
+        }));
+
+        return {
+            statusCode: 200,
+            message: "All restaurants found successfully",
+            data: data
+        }
+    }
+
     async findAll(query: FindRestaurantsQueryDto) {
         const page = query.page ?? 1;
         const limit = query.limit ?? 12;

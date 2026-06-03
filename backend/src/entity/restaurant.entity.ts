@@ -1,5 +1,6 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn, JoinColumn } from "typeorm";
 import { Categories } from "./categories.entity";
+import { User } from "./user.entity";
 
 @Entity('restaurant')
 export class Restaurant {
@@ -8,6 +9,10 @@ export class Restaurant {
 
     @Column({ nullable: true })
     ownerId: number;
+
+    @ManyToOne(() => User)
+    @JoinColumn({ name: 'ownerId' })
+    owner: User;
 
     @Column()
     name: string

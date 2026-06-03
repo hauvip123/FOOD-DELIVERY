@@ -1,10 +1,27 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
-import { Buildings, CheckCircle, Storefront, TrendUp, Users, WarningCircle } from "@phosphor-icons/react";
+import { 
+  Buildings, 
+  Storefront, 
+  TrendUp, 
+  Users, 
+  WarningCircle, 
+  ArrowUpRight,
+  DotsThree,
+  MapPin,
+  Calendar
+} from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
 import { AdminOverviewResponse, getAdminOverview } from "@/lib/admin";
+import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
+
+type DashboardIcon = ComponentType<{ size?: number; weight?: "bold" | "fill" }>;
+
+// --- Sub-components ---
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("vi-VN", {
@@ -23,20 +40,130 @@ function roleLabel(role: string) {
   return labels[role] ?? role;
 }
 
-function StatBar({ label, value, max, tone = "bg-emerald-500" }: { label: string; value: number; max: number; tone?: string }) {
-  const percent = max > 0 ? Math.max(5, (value / max) * 100) : 0;
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 20,
+    },
+  },
+};
+
+function BentoCard({ 
+  children, 
+  className = "", 
+  title, 
+  subtitle,
+  icon: Icon
+}: { 
+  children: ReactNode; 
+  className?: string; 
+  title?: string;
+  subtitle?: string;
+  icon?: DashboardIcon;
+}) {
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="text-sm font-black text-[#1f2925]">{label}</span>
-        <span className="text-sm font-black text-[#1f2925]/55">{value}</span>
+    <motion.div 
+      variants={itemVariants}
+      className={`group relative overflow-hidden rounded-[2.5rem] border border-slate-200/60 bg-white p-8 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] transition-shadow hover:shadow-[0_30px_60px_-20px_rgba(0,0,0,0.08)] ${className}`}
+    >
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+      
+      {(title || Icon) && (
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            {title && <h3 className="text-xl font-black tracking-tight text-[#1c1917]">{title}</h3>}
+            {subtitle && <p className="mt-1 text-xs font-bold text-slate-400">{subtitle}</p>}
+          </div>
+          {Icon && (
+            <div className="grid size-10 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition-colors group-hover:bg-orange-50 group-hover:text-orange-500">
+              <Icon size={20} weight="bold" />
+            </div>
+          )}
+        </div>
+      )}
+      {children}
+    </motion.div>
+  );
+}
+
+function StatCard({ label, value, note, icon: Icon, colorClass }: { label: string; value: number; note: string; icon: DashboardIcon; colorClass: string }) {
+  return (
+    <motion.div 
+      variants={itemVariants}
+      className="group relative overflow-hidden rounded-[2.5rem] border border-slate-200/60 bg-white p-8 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_60px_-20px_rgba(0,0,0,0.08)]"
+    >
+      {/* Perpetual micro-interaction: Subtle pulse bg */}
+      <motion.div 
+        animate={{ opacity: [0.03, 0.08, 0.03] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        className={`absolute -right-4 -top-4 size-32 rounded-full blur-3xl ${colorClass.split(' ')[0]}`}
+      />
+
+      <div className="relative flex flex-col justify-between h-full">
+        <div className="flex items-start justify-between">
+          <div className={`grid size-12 place-items-center rounded-2xl ${colorClass} shadow-lg transition-transform group-hover:scale-110`}>
+            <Icon size={24} weight="bold" />
+          </div>
+          <motion.div
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <ArrowUpRight size={20} className="text-slate-300" />
+          </motion.div>
+        </div>
+        
+        <div className="mt-8">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{label}</p>
+          <p className="mt-2 font-mono text-4xl font-black tracking-tighter text-[#1c1917]">
+            {value.toLocaleString()}
+          </p>
+          <div className="mt-4 flex items-center gap-2">
+            <span className="flex size-1.5 rounded-full bg-orange-500" />
+            <p className="text-xs font-bold text-slate-400">{note}</p>
+          </div>
+        </div>
       </div>
-      <div className="h-3 overflow-hidden rounded-full bg-[#1f2925]/6">
-        <div className={`h-full rounded-full ${tone}`} style={{ width: `${percent}%` }} />
+    </motion.div>
+  );
+}
+
+function StatBar({ label, value, max, color = "bg-orange-500" }: { label: string; value: number; max: number; color?: string }) {
+  const percent = max > 0 ? Math.max(5, (value / max) * 100) : 0;
+  
+  return (
+    <div className="group/bar">
+      <div className="mb-2.5 flex items-center justify-between">
+        <span className="text-xs font-black uppercase tracking-wider text-slate-500 group-hover/bar:text-slate-900 transition-colors">{label}</span>
+        <span className="font-mono text-sm font-black text-[#1c1917]">{value}</span>
+      </div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+        <motion.div 
+          initial={{ width: 0 }}
+          animate={{ width: `${percent}%` }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+          className={`h-full rounded-full ${color} shadow-[0_0_12px_-2px_rgba(255,107,0,0.3)]`} 
+        />
       </div>
     </div>
   );
 }
+
+// --- Main Page ---
 
 export default function AdminOverviewPage() {
   const [overview, setOverview] = useState<AdminOverviewResponse | null>(null);
@@ -74,184 +201,242 @@ export default function AdminOverviewPage() {
 
   const maxRoleCount = useMemo(() => Math.max(...(overview?.usersByRole.map((item) => item.count) ?? [1]), 1), [overview]);
   const maxStatusCount = useMemo(() => Math.max(...(overview?.restaurantsByStatus.map((item) => item.count) ?? [1]), 1), [overview]);
-  const maxCityCount = useMemo(() => Math.max(...(overview?.topCities.map((item) => item.count) ?? [1]), 1), [overview]);
-  const maxCuisineCount = useMemo(() => Math.max(...(overview?.topCuisines.map((item) => item.count) ?? [1]), 1), [overview]);
 
-  const summary = overview?.summary;
-  const cards = [
-    {
-      label: "Tổng người dùng",
-      value: summary?.totalUsers ?? 0,
-      note: `${summary?.activeUserCount ?? 0} tài khoản active`,
-      icon: Users,
-      tone: "bg-emerald-50 text-emerald-600",
-    },
-    {
-      label: "Chủ nhà hàng",
-      value: summary?.restaurantOwnerCount ?? 0,
-      note: `${summary?.customerCount ?? 0} khách hàng`,
-      icon: Buildings,
-      tone: "bg-sky-50 text-sky-600",
-    },
-    {
-      label: "Tổng nhà hàng",
-      value: summary?.totalRestaurants ?? 0,
-      note: `${summary?.openRestaurantCount ?? 0} đang mở`,
-      icon: Storefront,
-      tone: "bg-orange-50 text-orange-600",
-    },
-    {
-      label: "Rating trung bình",
-      value: summary?.averageRestaurantRating ?? 0,
-      note: `${summary?.closedRestaurantCount ?? 0} tạm nghỉ`,
-      icon: TrendUp,
-      tone: "bg-amber-50 text-amber-600",
-    },
-  ];
+  if (errorMessage) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center p-8">
+        <div className="grid size-20 place-items-center rounded-3xl bg-red-50 text-red-500">
+          <WarningCircle size={40} weight="bold" />
+        </div>
+        <h2 className="mt-6 text-2xl font-black tracking-tight text-[#1c1917]">Đã xảy ra lỗi</h2>
+        <p className="mt-2 text-slate-500 font-bold">{errorMessage}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-8 rounded-2xl bg-[#1c1917] px-8 py-3 text-sm font-black text-white transition-transform active:scale-95"
+        >
+          Thử lại
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      <header className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="space-y-10 pb-20"
+    >
+      {/* Header Section */}
+      <header className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-widest text-emerald-600">Admin</p>
-          <h1 className="mt-2 text-4xl font-black tracking-tight text-[#1f2925]">Thống kê hệ thống</h1>
-          <p className="mt-3 max-w-2xl text-sm font-bold leading-relaxed text-[#1f2925]/55">
-            Tổng quan người dùng và nhà hàng trong hệ thống. Trang này chỉ tập trung vào hai phần bạn cần quản trị.
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-2"
+          >
+            <span className="flex size-2 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.5)]" />
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Live Dashboard</p>
+          </motion.div>
+          <h1 className="mt-3 text-5xl font-black tracking-tight text-[#1c1917] md:text-6xl">Thống kê hệ thống</h1>
+          <p className="mt-4 max-w-2xl text-base font-bold leading-relaxed text-slate-400">
+            Quản trị viên có thể theo dõi sự phát triển của người dùng và hiệu quả kinh doanh của các nhà hàng trong thời gian thực.
           </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="grid size-12 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-400 transition-all hover:border-slate-300 hover:text-[#1c1917]">
+            <Calendar size={20} weight="bold" />
+          </button>
+          <button className="flex h-12 items-center gap-3 rounded-2xl bg-[#1c1917] px-6 text-sm font-black text-white shadow-xl shadow-slate-200 transition-transform active:scale-95">
+            Xuất báo cáo
+          </button>
         </div>
       </header>
 
-      {errorMessage && (
-        <div className="flex items-center gap-3 rounded-[1.5rem] bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
-          <WarningCircle size={20} weight="bold" />
-          {errorMessage}
-        </div>
-      )}
-
       {isLoading ? (
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-36 animate-pulse rounded-[2rem] bg-white ring-1 ring-black/5" />
-            ))}
-          </div>
-          <div className="grid gap-6 xl:grid-cols-2">
-            <div className="h-80 animate-pulse rounded-[2rem] bg-white ring-1 ring-black/5" />
-            <div className="h-80 animate-pulse rounded-[2rem] bg-white ring-1 ring-black/5" />
-          </div>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-64 animate-pulse rounded-[2.5rem] bg-white ring-1 ring-slate-100" />
+          ))}
+          <div className="md:col-span-2 h-96 animate-pulse rounded-[2.5rem] bg-white ring-1 ring-slate-100" />
+          <div className="md:col-span-2 h-96 animate-pulse rounded-[2.5rem] bg-white ring-1 ring-slate-100" />
         </div>
       ) : !overview ? (
-        <div className="rounded-[2rem] border border-dashed border-[#1f2925]/10 bg-white px-6 py-20 text-center">
-          <Users size={48} weight="bold" className="mx-auto text-emerald-200" />
-          <h2 className="mt-5 text-2xl font-black text-[#1f2925]">Chưa có dữ liệu</h2>
-          <p className="mt-3 text-sm font-bold text-[#1f2925]/45">Không thể hiển thị thống kê admin lúc này.</p>
-        </div>
+        <BentoCard className="flex h-96 flex-col items-center justify-center text-center">
+          <div className="grid size-20 place-items-center rounded-3xl bg-slate-50 text-slate-200">
+            <DotsThree size={48} weight="bold" />
+          </div>
+          <h2 className="mt-6 text-2xl font-black tracking-tight text-[#1c1917]">Chưa có dữ liệu</h2>
+          <p className="mt-2 text-slate-400 font-bold">Hãy quay lại sau khi hệ thống có hoạt động mới.</p>
+        </BentoCard>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {cards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <div key={card.label} className="rounded-[2rem] bg-white p-6 shadow-[0_18px_45px_-30px_rgba(31,41,37,0.28)] ring-1 ring-black/5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className={`grid size-12 place-items-center rounded-[1rem] ${card.tone}`}>
-                      <Icon size={25} weight="bold" />
-                    </div>
-                    <CheckCircle size={20} weight="fill" className="text-emerald-500" />
-                  </div>
-                  <p className="mt-6 text-xs font-black uppercase tracking-widest text-[#1f2925]/40">{card.label}</p>
-                  <p className="mt-2 text-3xl font-black tracking-tight text-[#1f2925]">{card.value}</p>
-                  <p className="mt-2 text-xs font-bold text-[#1f2925]/45">{card.note}</p>
-                </div>
-              );
-            })}
+          {/* Primary Stats Grid */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <StatCard 
+              label="Tổng người dùng" 
+              value={overview.summary.totalUsers} 
+              note={`${overview.summary.activeUserCount} active`} 
+              icon={Users} 
+              colorClass="bg-orange-500 text-white" 
+            />
+            <StatCard 
+              label="Chủ nhà hàng" 
+              value={overview.summary.restaurantOwnerCount} 
+              note={`${overview.summary.customerCount} khách hàng`} 
+              icon={Buildings} 
+              colorClass="bg-sky-500 text-white" 
+            />
+            <StatCard 
+              label="Tổng nhà hàng" 
+              value={overview.summary.totalRestaurants} 
+              note={`${overview.summary.openRestaurantCount} đang mở`} 
+              icon={Storefront} 
+              colorClass="bg-[#ff6b00] text-white" 
+            />
+            <StatCard 
+              label="Rating trung bình" 
+              value={overview.summary.averageRestaurantRating} 
+              note="Dựa trên tất cả review" 
+              icon={TrendUp} 
+              colorClass="bg-amber-500 text-white" 
+            />
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-2">
-            <section className="rounded-[2rem] bg-white p-6 shadow-[0_22px_55px_-34px_rgba(31,41,37,0.3)] ring-1 ring-black/5">
-              <h2 className="text-2xl font-black tracking-tight text-[#1f2925]">Người dùng</h2>
-              <p className="mt-1 text-sm font-bold text-[#1f2925]/45">Phân bố theo vai trò và trạng thái tài khoản.</p>
-              <div className="mt-6 space-y-5">
-                {overview.usersByRole.map((item) => (
-                  <StatBar key={item.role} label={roleLabel(item.role)} value={item.count} max={maxRoleCount} />
-                ))}
-              </div>
-              <div className="mt-7 grid gap-3 sm:grid-cols-3">
-                {overview.usersByStatus.map((item) => (
-                  <div key={item.status} className="rounded-[1.25rem] bg-[#f8faf9] p-4 ring-1 ring-[#1f2925]/5">
-                    <p className="text-2xl font-black text-[#1f2925]">{item.count}</p>
-                    <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#1f2925]/35">{item.status}</p>
+          {/* Bento Distribution Section */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+            <BentoCard 
+              className="lg:col-span-7"
+              title="Phân bố người dùng"
+              subtitle="Chi tiết theo vai trò và trạng thái"
+              icon={Users}
+            >
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div className="space-y-6">
+                    {overview.usersByRole.map((item) => (
+                      <StatBar key={item.role} label={roleLabel(item.role)} value={item.count} max={maxRoleCount} />
+                    ))}
                   </div>
-                ))}
+                  <div className="grid grid-cols-2 gap-4">
+                    {overview.usersByStatus.map((item) => (
+                      <div key={item.status} className="flex flex-col justify-center rounded-[2rem] bg-slate-50 p-6 transition-colors hover:bg-orange-50/50">
+                        <p className="font-mono text-3xl font-black text-[#1c1917]">{item.count}</p>
+                        <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">{item.status}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </section>
+            </BentoCard>
 
-            <section className="rounded-[2rem] bg-white p-6 shadow-[0_22px_55px_-34px_rgba(31,41,37,0.3)] ring-1 ring-black/5">
-              <h2 className="text-2xl font-black tracking-tight text-[#1f2925]">Nhà hàng</h2>
-              <p className="mt-1 text-sm font-bold text-[#1f2925]/45">Trạng thái hoạt động, thành phố và loại món phổ biến.</p>
-              <div className="mt-6 space-y-5">
+            <BentoCard 
+              className="lg:col-span-5"
+              title="Trạng thái nhà hàng"
+              subtitle="Hoạt động trên hệ thống"
+              icon={Storefront}
+            >
+              <div className="space-y-8">
                 {overview.restaurantsByStatus.map((item) => (
-                  <StatBar key={item.status} label={item.label} value={item.count} max={maxStatusCount} tone={item.status === "open" ? "bg-emerald-500" : "bg-stone-400"} />
+                  <StatBar 
+                    key={item.status} 
+                    label={item.label} 
+                    value={item.count} 
+                    max={maxStatusCount} 
+                    color={item.status === "open" ? "bg-orange-500" : "bg-slate-300"} 
+                  />
                 ))}
-              </div>
-              <div className="mt-7 grid gap-4 md:grid-cols-2">
-                <div className="space-y-3 rounded-[1.5rem] bg-[#f8faf9] p-4 ring-1 ring-[#1f2925]/5">
-                  <p className="text-xs font-black uppercase tracking-widest text-[#1f2925]/40">Top thành phố</p>
-                  {overview.topCities.length === 0 ? <p className="text-sm font-bold text-[#1f2925]/35">Chưa có dữ liệu</p> : overview.topCities.map((item) => (
-                    <StatBar key={item.city} label={item.city} value={item.count} max={maxCityCount} tone="bg-sky-500" />
-                  ))}
+                
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Top Thành phố</p>
+                    <div className="space-y-3">
+                      {overview.topCities.slice(0, 3).map((item) => (
+                        <div key={item.city} className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-600">{item.city}</span>
+                          <span className="font-mono text-xs font-black text-[#1c1917]">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Top Loại món</p>
+                    <div className="space-y-3">
+                      {overview.topCuisines.slice(0, 3).map((item) => (
+                        <div key={item.cuisine} className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-600">{item.cuisine}</span>
+                          <span className="font-mono text-xs font-black text-[#1c1917]">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-3 rounded-[1.5rem] bg-[#f8faf9] p-4 ring-1 ring-[#1f2925]/5">
-                  <p className="text-xs font-black uppercase tracking-widest text-[#1f2925]/40">Top loại món</p>
-                  {overview.topCuisines.length === 0 ? <p className="text-sm font-bold text-[#1f2925]/35">Chưa có dữ liệu</p> : overview.topCuisines.map((item) => (
-                    <StatBar key={item.cuisine} label={item.cuisine} value={item.count} max={maxCuisineCount} tone="bg-orange-500" />
-                  ))}
-                </div>
               </div>
-            </section>
+            </BentoCard>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-2">
-            <section className="rounded-[2rem] bg-white p-6 shadow-[0_22px_55px_-34px_rgba(31,41,37,0.3)] ring-1 ring-black/5">
-              <h2 className="text-2xl font-black tracking-tight text-[#1f2925]">Người dùng mới</h2>
-              <div className="mt-5 divide-y divide-[#1f2925]/5">
+          {/* Activity Feeds */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <BentoCard title="Người dùng mới" icon={Users}>
+              <div className="divide-y divide-slate-100">
                 {overview.recentUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-[#1f2925]">{user.username}</p>
-                      <p className="mt-1 truncate text-xs font-bold text-[#1f2925]/45">{user.email}</p>
+                  <div key={user.id} className="flex items-center justify-between py-5 first:pt-0 last:pb-0 group/item">
+                    <div className="flex items-center gap-4">
+                      <div className="size-10 rounded-full bg-slate-100 grid place-items-center font-black text-slate-400 text-xs">
+                        {user.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-[#1c1917] group-hover/item:text-orange-600 transition-colors">{user.username}</p>
+                        <p className="mt-1 truncate text-xs font-bold text-slate-400">{user.email}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700 ring-1 ring-emerald-100">{roleLabel(user.role)}</span>
-                      <p className="mt-2 text-[10px] font-bold text-[#1f2925]/35">{formatDate(user.createdAt)}</p>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="rounded-full bg-slate-50 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-slate-500 ring-1 ring-slate-200">
+                        {roleLabel(user.role)}
+                      </span>
+                      <p className="text-[9px] font-bold text-slate-300">{formatDate(user.createdAt)}</p>
                     </div>
                   </div>
                 ))}
               </div>
-            </section>
+            </BentoCard>
 
-            <section className="rounded-[2rem] bg-white p-6 shadow-[0_22px_55px_-34px_rgba(31,41,37,0.3)] ring-1 ring-black/5">
-              <h2 className="text-2xl font-black tracking-tight text-[#1f2925]">Nhà hàng mới</h2>
-              <div className="mt-5 divide-y divide-[#1f2925]/5">
-                {overview.recentRestaurants.map((restaurant) => (
-                  <Link key={restaurant.id} href={`/restaurants/${restaurant.id}`} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0 hover:text-emerald-600">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-[#1f2925]">{restaurant.name}</p>
-                      <p className="mt-1 truncate text-xs font-bold text-[#1f2925]/45">{restaurant.city} • {restaurant.cuisine}</p>
+            <BentoCard title="Nhà hàng mới" icon={Storefront}>
+              <div className="divide-y divide-slate-100">
+                {overview.recentRestaurants.map((res) => (
+                  <Link 
+                    key={res.id} 
+                    href={`/restaurants/${res.id}`}
+                    className="flex items-center justify-between py-5 first:pt-0 last:pb-0 group/item"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="size-10 rounded-2xl bg-orange-50 grid place-items-center text-orange-500 transition-transform group-hover/item:scale-110">
+                        <Storefront size={20} weight="fill" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-[#1c1917] group-hover/item:text-orange-600 transition-colors">{res.name}</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <MapPin size={10} className="text-slate-300" />
+                          <p className="truncate text-[10px] font-bold text-slate-400">{res.city} • {res.cuisine}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ring-1 ${restaurant.isOpen ? "bg-emerald-50 text-emerald-700 ring-emerald-100" : "bg-stone-50 text-stone-600 ring-stone-100"}`}>
-                        {restaurant.isOpen ? "Đang mở" : "Tạm nghỉ"}
-                      </span>
-                      <p className="mt-2 text-[10px] font-bold text-[#1f2925]/35">{restaurant.ratingAverage.toFixed(1)} sao</p>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-wider ring-1 ${res.isOpen ? 'bg-orange-50 text-orange-700 ring-orange-100' : 'bg-slate-50 text-slate-500 ring-slate-100'}`}>
+                        {res.isOpen ? 'Đang mở' : 'Tạm nghỉ'}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <TrendUp size={10} className="text-amber-500" />
+                        <p className="text-[10px] font-black text-[#1c1917]">{res.ratingAverage.toFixed(1)}</p>
+                      </div>
                     </div>
                   </Link>
                 ))}
               </div>
-            </section>
+            </BentoCard>
           </div>
         </>
       )}
-    </div>
+    </motion.div>
   );
 }

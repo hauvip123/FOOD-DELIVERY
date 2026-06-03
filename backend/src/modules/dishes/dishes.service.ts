@@ -48,7 +48,9 @@ export class DishesService {
     }
 
     async getAllDishes() {
-        const dishes = await this.dishRepository.find();
+        const dishes = await this.dishRepository.find({
+            relations: ['restaurant', 'category']
+        });
         return {
             statusCode: 200,
             message: "Get all dishes successfully",
