@@ -15,7 +15,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { getAllDishes, DishResponse } from "@/lib/dish";
-import { getAllCategories, CategoryResponse } from "@/lib/category";
+import { getAllCategories } from "@/lib/category";
 import { useCart } from "@/contexts/CartContext";
 import { ApiError } from "@/lib/api";
 
@@ -62,13 +62,20 @@ const itemVariants: Variants = {
 
 export default function MenuPage() {
   const [dishes, setDishes] = useState<DishResponse[]>([]);
-  const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [categoryNames, setCategoryNames] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategoryId, setActiveCategoryId] = useState<number | "all">("all");
+  const [activeCategoryName, setActiveCategoryName] = useState<string | "all">("all");
 
   const { items, addToCart, removeFromCart } = useCart();
+
+  useEffect(() => {
+    const categoryFromUrl = new URLSearchParams(window.location.search).get("category");
+    if (categoryFromUrl) {
+      setActiveCategoryName(categoryFromUrl);
+    }
+  }, []);
 
   useEffect(() => {
     let isCurrentRequest = true;
@@ -85,11 +92,13 @@ export default function MenuPage() {
         if (!isCurrentRequest) return;
 
         const availableDishes = dishData.filter((dish) => dish.isAvailable);
-        const categoryIds = new Set(availableDishes.map((dish) => dish.categoryId));
-        const relevantCategories = categoryData.filter((category) => categoryIds.has(category.id));
+        const namesFromDishes = availableDishes
+          .map((dish) => dish.category?.name)
+          .filter((name): name is string => Boolean(name));
+        const relevantCategoryNames = Array.from(new Set(namesFromDishes.length > 0 ? namesFromDishes : categoryData.map((category) => category.name)));
 
         setDishes(availableDishes);
-        setCategories(relevantCategories);
+        setCategoryNames(relevantCategoryNames);
       } catch (error) {
         if (isCurrentRequest) {
           setErrorMessage(error instanceof ApiError ? error.message : "Không thể tải thực đơn.");
@@ -117,11 +126,11 @@ export default function MenuPage() {
         dish.name.toLowerCase().includes(normalizedSearch) ||
         (dish.description?.toLowerCase().includes(normalizedSearch) ?? false) ||
         (dish.restaurant?.name.toLowerCase().includes(normalizedSearch) ?? false);
-      const matchesCategory = activeCategoryId === "all" || dish.categoryId === activeCategoryId;
+      const matchesCategory = activeCategoryName === "all" || dish.category?.name === activeCategoryName;
 
       return matchesSearch && matchesCategory;
     });
-  }, [activeCategoryId, dishes, searchQuery]);
+  }, [activeCategoryName, dishes, searchQuery]);
 
   return (
     <div className="min-h-screen bg-[#fffaf4] pb-20">
@@ -164,7 +173,7 @@ export default function MenuPage() {
                 <p className="mt-1 text-xs font-bold text-[#704322]/50">món có thể đặt</p>
               </div>
               <div className="rounded-2xl bg-orange-50 px-4 py-3 text-right text-orange-600">
-                <p className="text-xs font-black">{categories.length}</p>
+                <p className="text-xs font-black">{categoryNames.length}</p>
                 <p className="text-[10px] font-black uppercase tracking-widest">danh mục</p>
               </div>
             </div>
@@ -185,18 +194,18 @@ export default function MenuPage() {
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             <button
-              onClick={() => setActiveCategoryId("all")}
-              className={"whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-black transition-all active:scale-[0.98] " + (activeCategoryId === "all" ? "bg-[#23140c] text-white shadow-lg shadow-[#23140c]/10" : "bg-[#fffaf4] text-[#704322]/65 hover:bg-orange-50 hover:text-orange-600")}
+              onClick={() => setActiveCategoryName("all")}
+              className={"whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-black transition-all active:scale-[0.98] " + (activeCategoryName === "all" ? "bg-[#23140c] text-white shadow-lg shadow-[#23140c]/10" : "bg-[#fffaf4] text-[#704322]/65 hover:bg-orange-50 hover:text-orange-600")}
             >
               Tất cả
             </button>
-            {categories.map((category) => (
+            {categoryNames.map((categoryName) => (
               <button
-                key={category.id}
-                onClick={() => setActiveCategoryId(category.id)}
-                className={"whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-black transition-all active:scale-[0.98] " + (activeCategoryId === category.id ? "bg-[#23140c] text-white shadow-lg shadow-[#23140c]/10" : "bg-[#fffaf4] text-[#704322]/65 hover:bg-orange-50 hover:text-orange-600")}
+                key={categoryName}
+                onClick={() => setActiveCategoryName(categoryName)}
+                className={"whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-black transition-all active:scale-[0.98] " + (activeCategoryName === categoryName ? "bg-[#23140c] text-white shadow-lg shadow-[#23140c]/10" : "bg-[#fffaf4] text-[#704322]/65 hover:bg-orange-50 hover:text-orange-600")}
               >
-                {category.name}
+                {categoryName}
               </button>
             ))}
           </div>
