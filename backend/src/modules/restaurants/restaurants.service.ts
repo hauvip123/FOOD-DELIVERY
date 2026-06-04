@@ -25,7 +25,9 @@ export class RestaurantsService {
 
     async findAllAdmin() {
         const restaurants = await this.restaurantRepository.find({
-            relations: ['owner'],
+            relations: {
+                owner: true,
+            },
             order: { createdAt: 'DESC' },
         });
 

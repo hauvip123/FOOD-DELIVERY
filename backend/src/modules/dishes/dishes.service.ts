@@ -49,7 +49,10 @@ export class DishesService {
 
     async getAllDishes() {
         const dishes = await this.dishRepository.find({
-            relations: ['restaurant', 'category']
+            relations: {
+                restaurant: true,
+                category: true,
+            }
         });
         return {
             statusCode: 200,
