@@ -110,7 +110,7 @@ export function PopularDishes({ dishes = [], isLoading = false }: PopularDishesP
         {isLoading && dishes.length === 0 ? (
           <div className="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-[27rem] animate-pulse rounded-[2.5rem] bg-white/5 ring-1 ring-white/10" />
+              <div key={index} className="h-108 animate-pulse rounded-[2.5rem] bg-white/5 ring-1 ring-white/10" />
             ))}
           </div>
         ) : (

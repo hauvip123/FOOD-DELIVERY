@@ -110,3 +110,30 @@ export async function getMyRestaurants() {
   const response = await apiRequest<ApiResponse<RestaurantResponse[]>>("/restaurants/my-restaurants");
   return response.data;
 }
+export async function getFavoriteRestaurants() {
+  const response = await apiRequest<ApiResponse<RestaurantResponse[]>>("/restaurants/favorites");
+  return response.data;
+}
+
+export async function getFavoriteRestaurantIds() {
+  const response = await apiRequest<ApiResponse<number[]>>("/restaurants/favorites/ids");
+  return response.data;
+}
+
+export async function checkFavoriteRestaurant(id: number) {
+  const response = await apiRequest<ApiResponse<{ isFavorite: boolean }>>(`/restaurants/${id}/favorite`);
+  return response.data.isFavorite;
+}
+
+export async function addFavoriteRestaurant(id: number) {
+  const response = await apiRequest<ApiResponse<RestaurantResponse>>(`/restaurants/${id}/favorite`, {
+    method: "POST",
+  });
+  return response.data;
+}
+
+export async function removeFavoriteRestaurant(id: number) {
+  return apiRequest<Omit<ApiResponse<never>, "data">>(`/restaurants/${id}/favorite`, {
+    method: "DELETE",
+  });
+}

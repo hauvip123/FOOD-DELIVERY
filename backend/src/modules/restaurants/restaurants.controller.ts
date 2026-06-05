@@ -42,6 +42,36 @@ export class RestaurantsController {
         return this.restaurantService.findByOwner(req.user.id);
     }
 
+    @UseGuards(JwtAuthGuard)
+    @Get('favorites')
+    findFavoriteRestaurants(@Req() req) {
+        return this.restaurantService.findFavoriteRestaurants(req.user.id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('favorites/ids')
+    findFavoriteRestaurantIds(@Req() req) {
+        return this.restaurantService.findFavoriteRestaurantIds(req.user.id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get(':id/favorite')
+    checkFavoriteRestaurant(@Req() req, @Param('id') id: string) {
+        return this.restaurantService.checkFavoriteRestaurant(req.user.id, Number(id));
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post(':id/favorite')
+    addFavoriteRestaurant(@Req() req, @Param('id') id: string) {
+        return this.restaurantService.addFavoriteRestaurant(req.user.id, Number(id));
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Delete(':id/favorite')
+    removeFavoriteRestaurant(@Req() req, @Param('id') id: string) {
+        return this.restaurantService.removeFavoriteRestaurant(req.user.id, Number(id));
+    }
+
     @Get('/:id')
     findById(@Param('id') id: string) {
         return this.restaurantService.findByid(Number(id));

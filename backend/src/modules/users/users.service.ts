@@ -6,7 +6,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entity/user.entity';
 import { Restaurant } from 'src/entity/restaurant.entity';
-import { Repository } from 'typeorm';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { Not, Repository } from 'typeorm';
 
 const ADMIN_USER_ROLES = ['customer', 'restaurant', 'admin'] as const;
 const ADMIN_USER_STATUSES = ['active', 'inactive'] as const;
@@ -236,6 +237,45 @@ export class UsersService {
         updatedAt: restaurant.updatedAt,
       })),
     };
+  }
+
+
+  async updateProfile(userId: number, profileData: UpdateProfileDto) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (profileData.email !== undefined) {
+      const normalizedEmail = profileData.email.trim().toLowerCase();
+      const existingUser = await this.userRepository.findOne({
+        where: { email: normalizedEmail, id: Not(userId) },
+      });
+
+      if (existingUser) {
+        throw new BadRequestException('Email already exists');
+      }
+
+      user.email = normalizedEmail;
+    }
+
+    if (profileData.username !== undefined) {
+      user.username = profileData.username.trim();
+    }
+
+    if (profileData.phoneNumber !== undefined) {
+      const phoneNumber = profileData.phoneNumber?.trim();
+      user.phoneNumber = phoneNumber || null;
+    }
+
+    if (profileData.avatar !== undefined) {
+      const avatar = profileData.avatar?.trim();
+      user.avatar = avatar || null;
+    }
+
+    const savedUser = await this.userRepository.save(user);
+    return this.toAdminUser(savedUser);
   }
 
   async updateRole(userId: number, role: string) {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, ShoppingCart, List, SignOut } from "@phosphor-icons/react";
+import { ChatCircleText, User, ShoppingCart, List, SignOut } from "@phosphor-icons/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { canAccessManage } from "@/lib/auth";
 import { useCart } from "@/contexts/CartContext";
@@ -20,6 +20,10 @@ export function Header() {
     { name: "Thực đơn", href: "/menu" },
     { name: "Đơn hàng", href: "/orders" },
   ];
+
+  if (isAuthenticated) {
+    navLinks.push({ name: "Tin nhắn", href: canAccessManage(user?.role) ? "/manage/messages" : "/chat" });
+  }
 
   if (canAccessManage(user?.role)) {
     navLinks.push({ name: "Quản lý", href: "/manage" });
@@ -103,6 +107,13 @@ export function Header() {
                   >
                     <User size={18} weight="bold" />
                     Tài khoản
+                  </Link>
+                  <Link
+                    href={canAccessManage(user?.role) ? "/manage/messages" : "/chat"}
+                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#23140c] transition-colors hover:bg-orange-50 hover:text-[#ff6b00]"
+                  >
+                    <ChatCircleText size={18} weight="bold" />
+                    Tin nhắn
                   </Link>
                   <button
                     onClick={handleLogout}

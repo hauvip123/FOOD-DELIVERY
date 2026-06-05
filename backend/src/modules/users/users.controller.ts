@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -13,10 +14,22 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me')
+  async updateMyProfile(@Req() req, @Body() updateProfileDto: UpdateProfileDto) {
+    const user = await this.usersService.updateProfile(req.user.id, updateProfileDto);
+    return {
+      statusCode: 200,
+      message: 'Profile updated successfully',
+      data: user,
+    };
+  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')

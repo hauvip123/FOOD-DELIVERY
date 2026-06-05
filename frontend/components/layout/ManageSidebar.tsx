@@ -3,14 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { 
-  Storefront, 
   ListChecks, 
   ChartPieSlice, 
   User, 
   SignOut,
-  CaretLeft,
-  House,
   Buildings,
+  ChatCircleText,
   Star
 } from "@phosphor-icons/react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +23,7 @@ export function ManageSidebar() {
     { name: "Tổng quan", href: "/manage", icon: ChartPieSlice },
     { name: "Nhà hàng của tôi", href: "/manage/restaurants", icon: Buildings },
     { name: "Đơn hàng", href: "/manage/orders", icon: ListChecks },
+    { name: "Tin nhắn", href: "/manage/messages", icon: ChatCircleText },
     { name: "Đánh giá", href: "/manage/reviews", icon: Star },
     { name: "Tài khoản", href: "/manage/account", icon: User },
   ];

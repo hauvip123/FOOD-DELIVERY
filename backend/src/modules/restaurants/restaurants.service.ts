@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { FavoriteRestaurant } from 'src/entity/favorite-restaurant.entity';
 import { Restaurant } from 'src/entity/restaurant.entity';
 import { Repository } from 'typeorm';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
@@ -10,7 +11,8 @@ import { FindRestaurantsQueryDto } from './dto/find-restaurants-query.dto';
 @Injectable()
 export class RestaurantsService {
     constructor(
-        @InjectRepository(Restaurant) private readonly restaurantRepository: Repository<Restaurant>
+        @InjectRepository(Restaurant) private readonly restaurantRepository: Repository<Restaurant>,
+        @InjectRepository(FavoriteRestaurant) private readonly favoriteRestaurantRepository: Repository<FavoriteRestaurant>
     ) { }
     async createRestaurant(dataRestaurant: CreateRestaurantDto, ownerId: number) {
         const restaurant = this.restaurantRepository.create(dataRestaurant)
@@ -116,6 +118,84 @@ export class RestaurantsService {
                 total,
                 totalPages: Math.ceil(total / limit),
             }
+        }
+    }
+
+    async findFavoriteRestaurants(userId: number) {
+        const favorites = await this.favoriteRestaurantRepository.find({
+            where: { userId },
+            relations: { restaurant: true },
+            order: { createdAt: 'DESC' },
+        });
+
+        return {
+            statusCode: 200,
+            message: "Favorite restaurants fetched successfully",
+            data: favorites.map((favorite) => favorite.restaurant).filter(Boolean),
+        }
+    }
+
+    async findFavoriteRestaurantIds(userId: number) {
+        const favorites = await this.favoriteRestaurantRepository.find({
+            where: { userId },
+            select: { restaurantId: true },
+            order: { createdAt: 'DESC' },
+        });
+
+        return {
+            statusCode: 200,
+            message: "Favorite restaurant ids fetched successfully",
+            data: favorites.map((favorite) => favorite.restaurantId),
+        }
+    }
+
+    async checkFavoriteRestaurant(userId: number, restaurantId: number) {
+        const favorite = await this.favoriteRestaurantRepository.findOne({
+            where: { userId, restaurantId },
+        });
+
+        return {
+            statusCode: 200,
+            message: "Favorite restaurant status fetched successfully",
+            data: { isFavorite: Boolean(favorite) },
+        }
+    }
+
+    async addFavoriteRestaurant(userId: number, restaurantId: number) {
+        const restaurant = await this.restaurantRepository.findOne({ where: { id: restaurantId } });
+        if (!restaurant) {
+            throw new NotFoundException("Restaurant not found")
+        }
+
+        const existingFavorite = await this.favoriteRestaurantRepository.findOne({
+            where: { userId, restaurantId },
+            relations: { restaurant: true },
+        });
+
+        if (existingFavorite) {
+            return {
+                statusCode: 200,
+                message: "Restaurant already in favorites",
+                data: existingFavorite.restaurant ?? restaurant,
+            }
+        }
+
+        const favorite = this.favoriteRestaurantRepository.create({ userId, restaurantId });
+        await this.favoriteRestaurantRepository.save(favorite);
+
+        return {
+            statusCode: 201,
+            message: "Restaurant added to favorites",
+            data: restaurant,
+        }
+    }
+
+    async removeFavoriteRestaurant(userId: number, restaurantId: number) {
+        await this.favoriteRestaurantRepository.delete({ userId, restaurantId });
+
+        return {
+            statusCode: 200,
+            message: "Restaurant removed from favorites",
         }
     }
 

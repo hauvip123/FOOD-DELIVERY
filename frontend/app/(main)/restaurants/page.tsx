@@ -18,7 +18,9 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
-import { getRestaurants, RestaurantResponse } from "@/lib/restaurant";
+import { useAuth } from "@/contexts/AuthContext";
+import { FavoriteRestaurantButton } from "@/components/restaurants/FavoriteRestaurantButton";
+import { getFavoriteRestaurantIds, getRestaurants, RestaurantResponse } from "@/lib/restaurant";
 
 type SortValue = "createdAt-DESC" | "ratingAverage-DESC" | "name-ASC";
 type OpenFilter = "all" | "open" | "closed";
@@ -62,7 +64,9 @@ function getSortParts(sort: SortValue) {
 }
 
 export default function RestaurantsPage() {
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
+  const [favoriteRestaurantIds, setFavoriteRestaurantIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
@@ -133,6 +137,37 @@ export default function RestaurantsPage() {
     };
   }, [debouncedSearch, city, address, cuisine, openFilter, minRating, sort, page]);
 
+  useEffect(() => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let isCurrentRequest = true;
+
+    async function loadFavoriteIds() {
+      try {
+        const ids = await getFavoriteRestaurantIds();
+        if (isCurrentRequest) {
+          setFavoriteRestaurantIds(ids);
+        }
+      } catch {
+        if (isCurrentRequest) {
+          setFavoriteRestaurantIds([]);
+        }
+      }
+    }
+
+    loadFavoriteIds();
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [isAuthLoading, isAuthenticated]);
+
   function resetToFirstPage(action: () => void) {
     setPage(1);
     action();
@@ -147,6 +182,15 @@ export default function RestaurantsPage() {
     setMinRating("");
     setSort("createdAt-DESC");
     setPage(1);
+  }
+
+  function handleFavoriteChange(restaurantId: number, isFavorite: boolean) {
+    setFavoriteRestaurantIds((currentIds) => {
+      if (isFavorite) {
+        return currentIds.includes(restaurantId) ? currentIds : [...currentIds, restaurantId];
+      }
+      return currentIds.filter((id) => id !== restaurantId);
+    });
   }
 
   return (
@@ -355,6 +399,14 @@ export default function RestaurantsPage() {
                       <span className="rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#23140c] backdrop-blur">
                         {restaurant.city}
                       </span>
+                    </div>
+                    <div className="absolute right-4 top-4">
+                      <FavoriteRestaurantButton
+                        restaurantId={restaurant.id}
+                        initialIsFavorite={isAuthenticated && favoriteRestaurantIds.includes(restaurant.id)}
+                        variant="light"
+                        onChange={handleFavoriteChange}
+                      />
                     </div>
                   </div>
 

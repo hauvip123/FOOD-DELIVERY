@@ -5,8 +5,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
+  ChatCircleText,
   Clock,
-  Heart,
   Info,
   MagnifyingGlass,
   MapPin,
@@ -18,9 +18,11 @@ import {
   Truck,
 } from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { FavoriteRestaurantButton } from "@/components/restaurants/FavoriteRestaurantButton";
 import { getAllCategories, CategoryResponse } from "@/lib/category";
 import { getDishesByRestaurantId, DishResponse } from "@/lib/dish";
-import { getRestaurantById, RestaurantResponse } from "@/lib/restaurant";
+import { checkFavoriteRestaurant, getRestaurantById, RestaurantResponse } from "@/lib/restaurant";
 import { getRestaurantReviews, ReviewResponse } from "@/lib/review";
 import { useCart } from "@/contexts/CartContext";
 
@@ -66,6 +68,7 @@ export default function RestaurantDetailPage({ params }: { params: Promise<{ id:
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { items, addToCart, removeFromCart, errorMessage: cartErrorMessage } = useCart();
 
   useEffect(() => {
@@ -110,8 +113,10 @@ export default function RestaurantDetailPage({ params }: { params: Promise<{ id:
     }
 
     if (Number.isNaN(restaurantId)) {
-      setErrorMessage("Mã nhà hàng không hợp lệ.");
-      setIsLoading(false);
+      window.setTimeout(() => {
+        setErrorMessage("Mã nhà hàng không hợp lệ.");
+        setIsLoading(false);
+      }, 0);
       return;
     }
 
@@ -121,6 +126,37 @@ export default function RestaurantDetailPage({ params }: { params: Promise<{ id:
       isCurrentRequest = false;
     };
   }, [restaurantId]);
+
+  useEffect(() => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!isAuthenticated || Number.isNaN(restaurantId)) {
+      return;
+    }
+
+    let isCurrentRequest = true;
+
+    async function loadFavoriteStatus() {
+      try {
+        const favorite = await checkFavoriteRestaurant(restaurantId);
+        if (isCurrentRequest) {
+          setIsFavorite(favorite);
+        }
+      } catch {
+        if (isCurrentRequest) {
+          setIsFavorite(false);
+        }
+      }
+    }
+
+    loadFavoriteStatus();
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [isAuthLoading, isAuthenticated, restaurantId]);
 
   const categoryNameById = useMemo(() => {
     return new Map(categories.map((category) => [category.id, category.name]));
@@ -230,12 +266,20 @@ export default function RestaurantDetailPage({ params }: { params: Promise<{ id:
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={() => setIsFavorite(!isFavorite)}
-                className={`flex size-14 items-center justify-center rounded-2xl transition-all active:scale-90 ${isFavorite ? "bg-red-500 text-white" : "bg-white/10 text-white hover:bg-white/20"}`}
+              <FavoriteRestaurantButton
+                restaurantId={restaurant.id}
+                initialIsFavorite={isAuthenticated && isFavorite}
+                variant="dark"
+                size="lg"
+                onChange={(_, nextValue) => setIsFavorite(nextValue)}
+              />
+              <Link
+                href={`/chat?restaurantId=${restaurant.id}`}
+                className="flex size-14 items-center justify-center rounded-2xl bg-white/10 text-white transition-all hover:bg-white/20 active:scale-90"
+                title="Chat với nhà hàng"
               >
-                <Heart size={28} weight={isFavorite ? "fill" : "bold"} />
-              </button>
+                <ChatCircleText size={28} weight="bold" />
+              </Link>
               <button className="flex size-14 items-center justify-center rounded-2xl bg-white/10 text-white transition-all hover:bg-white/20 active:scale-90">
                 <ShareNetwork size={28} weight="bold" />
               </button>

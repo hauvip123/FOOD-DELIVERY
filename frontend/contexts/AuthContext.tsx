@@ -17,6 +17,7 @@ type AuthContextValue = {
   login: (payload: LoginPayload) => Promise<AuthSession>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<AuthSession | null>;
+  updateUser: (user: AuthUser) => void;
 };
 
 const ACCESS_TOKEN_KEY = "accessToken";
@@ -56,19 +57,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearSession, saveSession]);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem(USER_KEY);
-    const storedAccessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+    const timerId = window.setTimeout(() => {
+      const storedUser = localStorage.getItem(USER_KEY);
+      const storedAccessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
 
-    if (storedUser && storedAccessToken) {
-      try {
-        setUser(JSON.parse(storedUser) as AuthUser);
-        setAccessToken(storedAccessToken);
-      } catch {
-        clearSession();
+      if (storedUser && storedAccessToken) {
+        try {
+          setUser(JSON.parse(storedUser) as AuthUser);
+          setAccessToken(storedAccessToken);
+        } catch {
+          clearSession();
+        }
       }
-    }
 
-    refreshSession().finally(() => setIsLoading(false));
+      refreshSession().finally(() => setIsLoading(false));
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
   }, [clearSession, refreshSession]);
 
   const login = useCallback(async (payload: LoginPayload) => {
@@ -76,6 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveSession(response.data);
     return response.data;
   }, [saveSession]);
+
+
+  const updateUser = useCallback((nextUser: AuthUser) => {
+    setUser(nextUser);
+    localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -93,7 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     refreshSession,
-  }), [accessToken, isLoading, login, logout, refreshSession, user]);
+    updateUser,
+  }), [accessToken, isLoading, login, logout, refreshSession, updateUser, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
