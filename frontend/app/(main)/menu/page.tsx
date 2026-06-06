@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import {
+  CaretLeft,
+  CaretRight,
   Clock,
   ForkKnife,
   MagnifyingGlass,
@@ -14,12 +16,13 @@ import {
   Storefront,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { getAllDishes, DishResponse } from "@/lib/dish";
+import { getDishes, DishResponse } from "@/lib/dish";
 import { getAllCategories } from "@/lib/category";
 import { useCart } from "@/contexts/CartContext";
 import { ApiError } from "@/lib/api";
 
-const DISH_FALLBACK_IMAGE = "https://picsum.photos/seed/hungerdash-dish/500/500";
+const DISH_FALLBACK_IMAGE =
+  "https://picsum.photos/seed/hungerdash-dish/500/500";
 
 function buildDishImage(dish: DishResponse) {
   if (dish.image?.trim()) {
@@ -35,6 +38,16 @@ function formatPrice(price: number) {
     currency: "VND",
     maximumFractionDigits: 0,
   }).format(price);
+}
+function useDebouncedValue(value: string, delay = 450) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delay);
+    return () => window.clearTimeout(timeoutId);
+  }, [value, delay]);
+
+  return debouncedValue;
 }
 
 const containerVariants: Variants = {
@@ -66,42 +79,80 @@ export default function MenuPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategoryName, setActiveCategoryName] = useState<string | "all">("all");
+  const [activeCategoryName, setActiveCategoryName] = useState<string | "all">(
+    () => {
+      if (typeof window === "undefined") {
+        return "all";
+      }
+      return (
+        new URLSearchParams(window.location.search).get("category") ?? "all"
+      );
+    },
+  );
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  const debouncedSearch = useDebouncedValue(searchQuery);
 
   const { items, addToCart, removeFromCart } = useCart();
 
   useEffect(() => {
-    const categoryFromUrl = new URLSearchParams(window.location.search).get("category");
-    if (categoryFromUrl) {
-      setActiveCategoryName(categoryFromUrl);
+    let isCurrentRequest = true;
+
+    async function loadCategories() {
+      try {
+        const categoryData = await getAllCategories();
+        if (isCurrentRequest) {
+          setCategoryNames(categoryData.map((category) => category.name));
+        }
+      } catch {
+        if (isCurrentRequest) {
+          setCategoryNames([]);
+        }
+      }
     }
+
+    loadCategories();
+
+    return () => {
+      isCurrentRequest = false;
+    };
   }, []);
 
   useEffect(() => {
     let isCurrentRequest = true;
 
-    async function loadData() {
+    async function loadDishes() {
       setIsLoading(true);
       setErrorMessage("");
       try {
-        const [dishData, categoryData] = await Promise.all([
-          getAllDishes(),
-          getAllCategories(),
-        ]);
+        const result = await getDishes({
+          search: debouncedSearch.trim() || undefined,
+          categoryName:
+            activeCategoryName === "all" ? undefined : activeCategoryName,
+          isAvailable: true,
+          sortBy: "createdAt",
+          sortOrder: "DESC",
+          page,
+          limit: 12,
+        });
 
         if (!isCurrentRequest) return;
 
-        const availableDishes = dishData.filter((dish) => dish.isAvailable);
-        const namesFromDishes = availableDishes
-          .map((dish) => dish.category?.name)
-          .filter((name): name is string => Boolean(name));
-        const relevantCategoryNames = Array.from(new Set(namesFromDishes.length > 0 ? namesFromDishes : categoryData.map((category) => category.name)));
-
-        setDishes(availableDishes);
-        setCategoryNames(relevantCategoryNames);
+        setDishes(result.data);
+        setTotal(result.meta.total);
+        setTotalPages(Math.max(result.meta.totalPages, 1));
       } catch (error) {
         if (isCurrentRequest) {
-          setErrorMessage(error instanceof ApiError ? error.message : "Không thể tải thực đơn.");
+          setDishes([]);
+          setTotal(0);
+          setTotalPages(1);
+          setErrorMessage(
+            error instanceof ApiError
+              ? error.message
+              : "Không thể tải thực đơn.",
+          );
         }
       } finally {
         if (isCurrentRequest) {
@@ -110,27 +161,17 @@ export default function MenuPage() {
       }
     }
 
-    loadData();
+    loadDishes();
 
     return () => {
       isCurrentRequest = false;
     };
-  }, []);
+  }, [activeCategoryName, debouncedSearch, page]);
 
-  const filteredDishes = useMemo(() => {
-    const normalizedSearch = searchQuery.trim().toLowerCase();
-
-    return dishes.filter((dish) => {
-      const matchesSearch =
-        normalizedSearch.length === 0 ||
-        dish.name.toLowerCase().includes(normalizedSearch) ||
-        (dish.description?.toLowerCase().includes(normalizedSearch) ?? false) ||
-        (dish.restaurant?.name.toLowerCase().includes(normalizedSearch) ?? false);
-      const matchesCategory = activeCategoryName === "all" || dish.category?.name === activeCategoryName;
-
-      return matchesSearch && matchesCategory;
-    });
-  }, [activeCategoryName, dishes, searchQuery]);
+  function resetToFirstPage(action: () => void) {
+    setPage(1);
+    action();
+  }
 
   return (
     <div className="min-h-screen bg-[#fffaf4] pb-20">
@@ -145,7 +186,9 @@ export default function MenuPage() {
               <div className="grid size-9 place-items-center rounded-2xl bg-orange-100 text-orange-600">
                 <ForkKnife size={18} weight="bold" />
               </div>
-              <span className="text-xs font-black uppercase tracking-[0.25em] text-orange-600">Thực đơn</span>
+              <span className="text-xs font-black uppercase tracking-[0.25em] text-orange-600">
+                Thực đơn
+              </span>
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: -12 }}
@@ -161,20 +204,29 @@ export default function MenuPage() {
               transition={{ delay: 0.16 }}
               className="mt-6 max-w-2xl text-base font-bold leading-relaxed text-[#704322]/70 md:text-lg"
             >
-              Duyệt món theo danh mục, tìm nhanh theo tên món hoặc nhà hàng, rồi thêm vào giỏ hàng chỉ trong một thao tác.
+              Duyệt món theo danh mục, tìm nhanh theo tên món hoặc nhà hàng, rồi
+              thêm vào giỏ hàng chỉ trong một thao tác.
             </motion.p>
           </div>
 
           <div className="rounded-[2rem] border border-[#23140c]/5 bg-white p-5 shadow-[0_24px_50px_-24px_rgba(35,20,12,0.18)]">
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#704322]/40">Đang hiển thị</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#704322]/40">
+              Đang hiển thị
+            </p>
             <div className="mt-3 flex items-end justify-between gap-4">
               <div>
-                <p className="font-mono text-4xl font-black tracking-tight text-[#23140c]">{filteredDishes.length}</p>
-                <p className="mt-1 text-xs font-bold text-[#704322]/50">món có thể đặt</p>
+                <p className="font-mono text-4xl font-black tracking-tight text-[#23140c]">
+                  {total}
+                </p>
+                <p className="mt-1 text-xs font-bold text-[#704322]/50">
+                  món có thể đặt
+                </p>
               </div>
               <div className="rounded-2xl bg-orange-50 px-4 py-3 text-right text-orange-600">
                 <p className="text-xs font-black">{categoryNames.length}</p>
-                <p className="text-[10px] font-black uppercase tracking-widest">danh mục</p>
+                <p className="text-[10px] font-black uppercase tracking-widest">
+                  danh mục
+                </p>
               </div>
             </div>
           </div>
@@ -187,23 +239,39 @@ export default function MenuPage() {
               type="text"
               placeholder="Tìm món ăn hoặc nhà hàng..."
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={(event) =>
+                resetToFirstPage(() => setSearchQuery(event.target.value))
+              }
               className="h-14 w-full rounded-[1.25rem] border border-[#23140c]/5 bg-[#fffaf4] pl-13 pr-5 text-sm font-bold text-[#23140c] outline-none transition-all focus:border-orange-500 focus:bg-white focus:ring-4 focus:ring-orange-500/10"
             />
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             <button
-              onClick={() => setActiveCategoryName("all")}
-              className={"whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-black transition-all active:scale-[0.98] " + (activeCategoryName === "all" ? "bg-[#23140c] text-white shadow-lg shadow-[#23140c]/10" : "bg-[#fffaf4] text-[#704322]/65 hover:bg-orange-50 hover:text-orange-600")}
+              onClick={() =>
+                resetToFirstPage(() => setActiveCategoryName("all"))
+              }
+              className={
+                "whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-black transition-all active:scale-[0.98] " +
+                (activeCategoryName === "all"
+                  ? "bg-[#23140c] text-white shadow-lg shadow-[#23140c]/10"
+                  : "bg-[#fffaf4] text-[#704322]/65 hover:bg-orange-50 hover:text-orange-600")
+              }
             >
               Tất cả
             </button>
             {categoryNames.map((categoryName) => (
               <button
                 key={categoryName}
-                onClick={() => setActiveCategoryName(categoryName)}
-                className={"whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-black transition-all active:scale-[0.98] " + (activeCategoryName === categoryName ? "bg-[#23140c] text-white shadow-lg shadow-[#23140c]/10" : "bg-[#fffaf4] text-[#704322]/65 hover:bg-orange-50 hover:text-orange-600")}
+                onClick={() =>
+                  resetToFirstPage(() => setActiveCategoryName(categoryName))
+                }
+                className={
+                  "whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-black transition-all active:scale-[0.98] " +
+                  (activeCategoryName === categoryName
+                    ? "bg-[#23140c] text-white shadow-lg shadow-[#23140c]/10"
+                    : "bg-[#fffaf4] text-[#704322]/65 hover:bg-orange-50 hover:text-orange-600")
+                }
               >
                 {categoryName}
               </button>
@@ -214,13 +282,18 @@ export default function MenuPage() {
         {isLoading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, index) => (
-              <div key={index} className="h-[25rem] animate-pulse rounded-[2rem] bg-white ring-1 ring-[#23140c]/5" />
+              <div
+                key={index}
+                className="h-[25rem] animate-pulse rounded-[2rem] bg-white ring-1 ring-[#23140c]/5"
+              />
             ))}
           </div>
         ) : errorMessage ? (
           <div className="flex min-h-[24rem] flex-col items-center justify-center rounded-[2.5rem] bg-white p-10 text-center ring-1 ring-red-100">
             <WarningCircle size={64} weight="bold" className="text-red-500" />
-            <h2 className="mt-6 text-2xl font-black text-[#23140c]">Đã xảy ra lỗi</h2>
+            <h2 className="mt-6 text-2xl font-black text-[#23140c]">
+              Đã xảy ra lỗi
+            </h2>
             <p className="mt-2 font-bold text-[#704322]/70">{errorMessage}</p>
             <button
               onClick={() => window.location.reload()}
@@ -229,13 +302,17 @@ export default function MenuPage() {
               Thử lại
             </button>
           </div>
-        ) : filteredDishes.length === 0 ? (
+        ) : dishes.length === 0 ? (
           <div className="flex min-h-[24rem] flex-col items-center justify-center rounded-[2.5rem] bg-white p-10 text-center ring-1 ring-[#23140c]/5">
             <div className="grid size-20 place-items-center rounded-3xl bg-orange-50 text-orange-200">
               <ForkKnife size={40} weight="bold" />
             </div>
-            <h2 className="mt-6 text-2xl font-black text-[#23140c]">Không tìm thấy món nào</h2>
-            <p className="mt-2 font-bold text-[#704322]/70">Hãy thử đổi danh mục hoặc từ khóa tìm kiếm.</p>
+            <h2 className="mt-6 text-2xl font-black text-[#23140c]">
+              Không tìm thấy món nào
+            </h2>
+            <p className="mt-2 font-bold text-[#704322]/70">
+              Hãy thử đổi danh mục hoặc từ khóa tìm kiếm.
+            </p>
           </div>
         ) : (
           <motion.div
@@ -244,7 +321,7 @@ export default function MenuPage() {
             animate="visible"
             className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
-            {filteredDishes.map((dish) => {
+            {dishes.map((dish) => {
               const cartItem = items.find((item) => item.id === dish.id);
               const quantity = cartItem?.quantity ?? 0;
 
@@ -281,12 +358,23 @@ export default function MenuPage() {
                             >
                               <Minus size={14} weight="bold" />
                             </button>
-                            <span className="w-4 text-center text-xs font-black text-[#23140c]">{quantity}</span>
+                            <span className="w-4 text-center text-xs font-black text-[#23140c]">
+                              {quantity}
+                            </span>
                           </motion.div>
                         )}
                       </AnimatePresence>
                       <button
-                        onClick={() => addToCart({ id: dish.id, name: dish.name, price: Number(dish.price), restaurantId: dish.restaurantId, restaurantName: dish.restaurant?.name ?? "Nhà hàng", image: buildDishImage(dish) })}
+                        onClick={() =>
+                          addToCart({
+                            id: dish.id,
+                            name: dish.name,
+                            price: Number(dish.price),
+                            restaurantId: dish.restaurantId,
+                            restaurantName: dish.restaurant?.name ?? "Nhà hàng",
+                            image: buildDishImage(dish),
+                          })
+                        }
                         className="grid size-10 place-items-center rounded-full bg-[#ff6b00] text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
                       >
                         <Plus size={20} weight="bold" />
@@ -310,13 +398,18 @@ export default function MenuPage() {
                       {dish.name}
                     </h3>
                     <p className="mt-2 min-h-[2.5rem] text-xs font-bold leading-relaxed text-[#704322]/55 line-clamp-2">
-                      {dish.description || "Món ăn được chế biến mỗi ngày, sẵn sàng thêm vào giỏ hàng của bạn."}
+                      {dish.description ||
+                        "Món ăn được chế biến mỗi ngày, sẵn sàng thêm vào giỏ hàng của bạn."}
                     </p>
 
                     <div className="mt-auto flex items-center justify-between pt-6">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#704322]/35">Giá món</p>
-                        <p className="text-2xl font-black tracking-tight text-[#23140c]">{formatPrice(dish.price)}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#704322]/35">
+                          Giá món
+                        </p>
+                        <p className="text-2xl font-black tracking-tight text-[#23140c]">
+                          {formatPrice(dish.price)}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2 rounded-xl bg-orange-50 px-3 py-2 text-orange-600">
                         <Clock size={16} weight="bold" />
@@ -328,6 +421,34 @@ export default function MenuPage() {
               );
             })}
           </motion.div>
+        )}
+
+        {!isLoading && !errorMessage && totalPages > 1 && (
+          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <button
+              onClick={() =>
+                setPage((currentPage) => Math.max(currentPage - 1, 1))
+              }
+              disabled={page === 1}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-white px-5 text-sm font-black text-[#23140c] ring-1 ring-[#23140c]/5 transition-all hover:text-orange-600 disabled:pointer-events-none disabled:opacity-40 active:scale-95"
+            >
+              <CaretLeft size={18} weight="bold" />
+              Trang trước
+            </button>
+            <div className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-[#704322] ring-1 ring-[#23140c]/5">
+              Trang {page} / {totalPages}
+            </div>
+            <button
+              onClick={() =>
+                setPage((currentPage) => Math.min(currentPage + 1, totalPages))
+              }
+              disabled={page === totalPages}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-white px-5 text-sm font-black text-[#23140c] ring-1 ring-[#23140c]/5 transition-all hover:text-orange-600 disabled:pointer-events-none disabled:opacity-40 active:scale-95"
+            >
+              Trang sau
+              <CaretRight size={18} weight="bold" />
+            </button>
+          </div>
         )}
       </div>
     </div>
