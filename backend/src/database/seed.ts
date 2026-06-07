@@ -11,6 +11,7 @@ import { DeliveryAddress } from "src/entity/delivery-address.entity";
 import { Order } from "src/entity/order.entity";
 import { OrderItem } from "src/entity/order-item.entiry";
 import { Review } from "src/entity/review.entiry";
+import * as bcrypt from "bcrypt";
 
 type SeedCategory = {
     name: string;
@@ -691,13 +692,54 @@ const dataSource = new DataSource({
         OrderItem,
         Review,
     ],
-    synchronize: true,
+    ssl: process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: true } : undefined,
+    synchronize: process.env.TYPEORM_SYNC === "true",
 });
 
-async function findOrCreateRestaurant(repository: Repository<Restaurant>, data: SeedRestaurant) {
+const DEFAULT_RESTAURANT_OWNER_PASSWORD = "Restaurant@123";
+
+function buildOwnerEmail(restaurantName: string) {
+    const slug = restaurantName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/đ/g, "d")
+        .replace(/[^a-z0-9]+/g, ".")
+        .replace(/^\.+|\.+$/g, "") || "restaurant";
+
+    return slug + "@restaurant.hungerdash.local";
+}
+
+async function findOrCreateRestaurantOwner(repository: Repository<User>, restaurantName: string, phoneNumber: string) {
+    const email = buildOwnerEmail(restaurantName);
+    const existing = await repository.findOne({ where: { email } });
+
+    if (existing) {
+        existing.username = restaurantName;
+        existing.phoneNumber = phoneNumber;
+        existing.role = "restaurant";
+        existing.status = "active";
+        return repository.save(existing);
+    }
+
+    const hashedPassword = await bcrypt.hash(DEFAULT_RESTAURANT_OWNER_PASSWORD, 10);
+    const owner = repository.create({
+        username: restaurantName,
+        email,
+        password: hashedPassword,
+        phoneNumber,
+        role: "restaurant",
+        status: "active",
+    });
+
+    return repository.save(owner);
+}
+
+async function findOrCreateRestaurant(repository: Repository<Restaurant>, data: SeedRestaurant, ownerId: number) {
     const existing = await repository.findOne({ where: { name: data.name } });
     const restaurant = repository.create({
         ...existing,
+        ownerId,
         name: data.name,
         address: data.address,
         city: data.city,
@@ -709,6 +751,7 @@ async function findOrCreateRestaurant(repository: Repository<Restaurant>, data: 
         closeTime: data.closeTime,
         isOpen: data.isOpen,
         ratingAverage: data.ratingAverage,
+        deliveryFee: existing?.deliveryFee ?? 15000,
     });
 
     return repository.save(restaurant);
@@ -752,12 +795,16 @@ async function seed() {
     const restaurantRepository = dataSource.getRepository(Restaurant);
     const categoryRepository = dataSource.getRepository(Categories);
     const dishRepository = dataSource.getRepository(Dish);
+    const userRepository = dataSource.getRepository(User);
 
     let categoryCount = 0;
     let dishCount = 0;
+    let ownerCount = 0;
 
     for (const item of restaurants) {
-        const restaurant = await findOrCreateRestaurant(restaurantRepository, item);
+        const owner = await findOrCreateRestaurantOwner(userRepository, item.name, item.phoneNumber);
+        ownerCount += 1;
+        const restaurant = await findOrCreateRestaurant(restaurantRepository, item, owner.id);
 
         for (const category of item.categories) {
             const savedCategory = await findOrCreateCategory(categoryRepository, restaurant.id, category.name);
@@ -770,7 +817,8 @@ async function seed() {
         }
     }
 
-    console.log("Seed completed: " + restaurants.length + " restaurants, " + categoryCount + " categories, " + dishCount + " dishes.");
+    console.log("Seed completed: " + restaurants.length + " restaurants, " + ownerCount + " restaurant owners, " + categoryCount + " categories, " + dishCount + " dishes.");
+    console.log("Restaurant owner password: " + DEFAULT_RESTAURANT_OWNER_PASSWORD);
     await dataSource.destroy();
 }
 
