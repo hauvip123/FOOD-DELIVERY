@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Buildings, Clock, Heart, MapPin, Star } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, Buildings, Clock, Heart, MapPin, Star, Truck } from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { FavoriteRestaurantButton } from "@/components/restaurants/FavoriteRestaurantButton";
@@ -19,6 +19,16 @@ function buildImageUrl(restaurant: RestaurantResponse) {
 
 function formatRating(value: number) {
   return Number(value || 0).toFixed(1);
+}
+
+function formatDeliveryFee(value?: number) {
+  const fee = Number(value || 0);
+  if (fee <= 0) return "Miễn phí";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(fee);
 }
 
 export default function FavoriteRestaurantsPage() {
@@ -168,6 +178,10 @@ export default function FavoriteRestaurantsPage() {
                     <div className="flex items-center gap-2 rounded-[1rem] bg-[#fff7ed] px-3 py-2.5">
                       <Clock size={16} weight="bold" />
                       <span>{restaurant.openTime} - {restaurant.closeTime}</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-[1rem] bg-orange-50 px-3 py-2.5 text-[#ff6b00] sm:col-span-2">
+                      <Truck size={16} weight="bold" />
+                      <span>Phí giao {formatDeliveryFee(restaurant.deliveryFee)}</span>
                     </div>
                   </div>
                   <Link href={`/restaurants/${restaurant.id}`} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[1rem] bg-[#23140c] text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95">

@@ -2,9 +2,9 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, Clock, CookingPot, MapPin, Package, Phone, Receipt, Star, Truck, XCircle } from "@phosphor-icons/react";
+import { ArrowLeft, Bank, CheckCircle, Clock, CookingPot, MapPin, Package, Phone, Receipt, ShieldCheck, Star, Truck, XCircle } from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
-import { cancelOrder, confirmOrderReceived, getOrderDetail, OrderDetailResponse } from "@/lib/order";
+import { cancelOrder, confirmOrderReceived, createVnpayPaymentUrl, getOrderDetail, OrderDetailResponse } from "@/lib/order";
 import { getRestaurantById, RestaurantResponse } from "@/lib/restaurant";
 import { createReview, getOrderReview, ReviewResponse } from "@/lib/review";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,24 @@ const statusConfig: Record<string, { label: string; tone: string; step: number }
   completed: { label: "Đã nhận hàng", tone: "bg-emerald-50 text-emerald-700 ring-emerald-100", step: 4 },
   cancelled: { label: "Đã hủy", tone: "bg-red-50 text-red-700 ring-red-100", step: -1 },
 };
+
+const paymentMethodLabels: Record<string, string> = {
+  cash: "Tiền mặt",
+  online_card: "Thẻ / ví online",
+  bank_transfer: "Chuyển khoản QR",
+  vnpay: "VNPay",
+};
+
+const paymentStatusConfig: Record<string, { label: string; tone: string }> = {
+  pending: { label: "Chờ thanh toán", tone: "bg-amber-50 text-amber-700 ring-amber-100" },
+  awaiting_payment: { label: "Chờ thanh toán online", tone: "bg-orange-50 text-orange-700 ring-orange-100" },
+  paid: { label: "Đã thanh toán", tone: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
+  failed: { label: "Thanh toán lỗi", tone: "bg-red-50 text-red-700 ring-red-100" },
+};
+
+function isOnlinePayment(value: string) {
+  return value === "vnpay";
+}
 
 const steps = [
   { label: "Chờ xác nhận", icon: Clock },
@@ -53,6 +71,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [errorMessage, setErrorMessage] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
   const [isConfirmingReceived, setIsConfirmingReceived] = useState(false);
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
   const [restaurant, setRestaurant] = useState<RestaurantResponse | null>(null);
   const [review, setReview] = useState<ReviewResponse | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
@@ -61,6 +80,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
   const order = detail?.order;
   const status = order ? (statusConfig[order.orderStatus] ?? statusConfig.pending) : statusConfig.pending;
+  const paymentStatus = order ? (paymentStatusConfig[order.paymentStatus] ?? paymentStatusConfig.pending) : paymentStatusConfig.pending;
+  const canPayOnline = Boolean(order && isOnlinePayment(order.paymentMethod) && order.paymentStatus !== "paid" && order.orderStatus !== "cancelled");
   const canCancel = Boolean(order && ["pending", "confirmed"].includes(order.orderStatus));
   const canReceive = Boolean(order && order.orderStatus === "delivering");
   const canReview = Boolean(order && order.orderStatus === "completed" && !review);
@@ -144,6 +165,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  async function handleConfirmPayment() {
+    if (!order) return;
+
+    setIsConfirmingPayment(true);
+    setErrorMessage("");
+    try {
+      const { paymentUrl } = await createVnpayPaymentUrl(order.id);
+      window.location.href = paymentUrl;
+    } catch (error) {
+      setErrorMessage(error instanceof ApiError ? error.message : "Không thể xác nhận thanh toán.");
+    } finally {
+      setIsConfirmingPayment(false);
+    }
+  }
+
   async function handleConfirmReceived() {
     if (!order) return;
 
@@ -216,7 +252,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               </p>
             )}
           </div>
-          {order && <span className={`w-fit rounded-full px-4 py-2 text-sm font-black ring-1 ${status.tone}`}>{status.label}</span>}
+          {order && (
+            <div className="flex flex-wrap gap-2">
+              <span className={`w-fit rounded-full px-4 py-2 text-sm font-black ring-1 ${status.tone}`}>{status.label}</span>
+              <span className={`w-fit rounded-full px-4 py-2 text-sm font-black ring-1 ${paymentStatus.tone}`}>{paymentStatus.label}</span>
+            </div>
+          )}
         </header>
 
         {errorMessage && (
@@ -378,9 +419,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   <span>Phí giao hàng</span>
                   <span>{formatMoney(order.deliveryFee)}</span>
                 </div>
-                <div className="flex justify-between text-sm font-bold text-white/55">
+                <div className="flex justify-between gap-4 text-sm font-bold text-white/55">
                   <span>Phương thức</span>
-                  <span>{order.paymentMethod === "cash" ? "Tiền mặt" : "Thẻ"}</span>
+                  <span className="text-right">{paymentMethodLabels[order.paymentMethod] ?? "Thanh toán online"}</span>
+                </div>
+                <div className="flex justify-between gap-4 text-sm font-bold text-white/55">
+                  <span>Trạng thái</span>
+                  <span className="text-right">{paymentStatus.label}</span>
                 </div>
                 <div className="border-t border-white/10 pt-5">
                   <div className="flex items-end justify-between">
@@ -389,6 +434,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   </div>
                 </div>
               </div>
+
+              {canPayOnline && (
+                <div className="mt-8 rounded-[1.5rem] bg-white/5 p-4 ring-1 ring-white/10">
+                  <div className="flex items-center gap-2 text-orange-400">
+                    <Bank size={20} weight="bold" />
+                    <p className="text-xs font-black uppercase tracking-widest">Thanh toán online</p>
+                  </div>
+                  <div className="mt-3 space-y-2 text-sm font-bold text-white/60">
+                    <p>Bấm nút bên dưới để quay lại cổng VNPay và hoàn tất giao dịch.</p>
+                  </div>
+                  <button
+                    onClick={handleConfirmPayment}
+                    disabled={isConfirmingPayment}
+                    className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[1rem] bg-[#ff6b00] text-sm font-black text-white transition-all hover:bg-orange-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
+                  >
+                    <ShieldCheck size={18} weight="bold" />
+                    {isConfirmingPayment ? "Đang chuyển..." : order.paymentStatus === "failed" ? "Thanh toán lại" : "Thanh toán qua VNPay"}
+                  </button>
+                </div>
+              )}
 
               {canReceive && (
                 <button

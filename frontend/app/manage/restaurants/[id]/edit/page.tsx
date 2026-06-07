@@ -15,7 +15,8 @@ import {
   Image as ImageIcon,
   CheckCircle,
   WarningCircle,
-  FloppyDiskBack
+  FloppyDiskBack,
+  Truck
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { updateRestaurant, getRestaurantById, RestaurantPayload } from "@/lib/restaurant";
@@ -42,6 +43,7 @@ export default function EditRestaurantPage({ params }: EditRestaurantPageProps) 
     phoneNumber: "",
     openTime: "08:00",
     closeTime: "22:00",
+    deliveryFee: 15000,
     imgage: ""
   });
 
@@ -58,6 +60,7 @@ export default function EditRestaurantPage({ params }: EditRestaurantPageProps) 
           phoneNumber: data.phoneNumber || "",
           openTime: data.openTime,
           closeTime: data.closeTime,
+          deliveryFee: Number(data.deliveryFee || 0),
           imgage: data.imgage || ""
         });
       } catch (err) {
@@ -71,7 +74,10 @@ export default function EditRestaurantPage({ params }: EditRestaurantPageProps) 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "deliveryFee" ? Math.max(0, Number(value) || 0) : value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -214,6 +220,23 @@ export default function EditRestaurantPage({ params }: EditRestaurantPageProps) 
                   type="tel"
                   name="phoneNumber"
                   value={formData.phoneNumber}
+                  onChange={handleChange}
+                  className="h-14 w-full rounded-2xl bg-[#fffcf8] px-6 text-lg font-bold text-[#23140c] outline-none ring-2 ring-transparent transition-all focus:bg-white focus:ring-orange-500/20"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
+                  <Truck size={20} weight="bold" className="text-orange-500" />
+                  Phí vận chuyển
+                </label>
+                <input
+                  required
+                  min={0}
+                  step={1000}
+                  type="number"
+                  name="deliveryFee"
+                  value={formData.deliveryFee ?? 0}
                   onChange={handleChange}
                   className="h-14 w-full rounded-2xl bg-[#fffcf8] px-6 text-lg font-bold text-[#23140c] outline-none ring-2 ring-transparent transition-all focus:bg-white focus:ring-orange-500/20"
                 />

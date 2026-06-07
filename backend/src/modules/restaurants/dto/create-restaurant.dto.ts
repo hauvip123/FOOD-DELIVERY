@@ -45,5 +45,9 @@ export class CreateRestaurantDto {
 
     @IsOptional()
     @IsNumber()
+    deliveryFee?: number;
+
+    @IsOptional()
+    @IsNumber()
     ratingAverage?: number;
 }

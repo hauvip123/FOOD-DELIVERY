@@ -25,6 +25,7 @@ export type RestaurantPayload = {
   phoneNumber?: string;
   openTime: string;
   closeTime: string;
+  deliveryFee?: number;
 };
 
 export type RestaurantResponse = {
@@ -41,6 +42,7 @@ export type RestaurantResponse = {
   closeTime: string;
   isOpen: boolean;
   ratingAverage: number;
+  deliveryFee: number;
   createdAt: string;
   updatedAt: string;
 };

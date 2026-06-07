@@ -55,6 +55,16 @@ function formatPrice(price: number) {
   }).format(price);
 }
 
+function formatDeliveryFee(value?: number) {
+  const fee = Number(value || 0);
+  if (fee <= 0) return "Miễn phí";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(fee);
+}
+
 export default function RestaurantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const restaurantId = Number(id);
@@ -304,8 +314,8 @@ export default function RestaurantDetailPage({ params }: { params: Promise<{ id:
               <Truck size={24} weight="bold" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#23140c]/40">Trạng thái</p>
-              <p className="text-sm font-black text-[#23140c]">{restaurant.isOpen ? "Nhận đơn" : "Tạm ngưng"}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#23140c]/40">Phí giao</p>
+              <p className="text-sm font-black text-[#23140c]">{formatDeliveryFee(restaurant.deliveryFee)}</p>
             </div>
           </div>
           <div className="flex items-center gap-4 px-2 lg:border-l lg:border-[#23140c]/5 lg:px-4">

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
@@ -11,7 +11,7 @@ export class OrdersController {
 
   @Post()
   create(@Req() req, @Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.create(req.user.id, createOrderDto);
+    return this.ordersService.create(req.user.id, createOrderDto, this.getClientIp(req));
   }
 
   @Get('/my-orders')
@@ -27,6 +27,11 @@ export class OrdersController {
   @Get('/manage/my-orders')
   findManagedOrders(@Req() req) {
     return this.ordersService.findManagedOrders(req.user.id, req.user.role);
+  }
+
+  @Get("vnpay-return")
+  handleVnpayReturn(@Req() req, @Query() query: Record<string, string | string[]>) {
+    return this.ordersService.handleVnpayReturn(query, req.user.id);
   }
 
   @Patch(':id/status')
@@ -47,6 +52,16 @@ export class OrdersController {
     return this.ordersService.confirmReceived(Number(id), req.user.id);
   }
 
+  @Post(":id/vnpay-payment-url")
+  createVnpayPaymentUrl(@Req() req, @Param("id") id: string) {
+    return this.ordersService.createVnpayPaymentUrl(Number(id), req.user.id, this.getClientIp(req));
+  }
+
+  @Patch(':id/payment')
+  confirmPayment(@Req() req, @Param('id') id: string) {
+    return this.ordersService.confirmPayment(Number(id), req.user.id);
+  }
+
   @Patch(':id/cancel')
   cancelOrder(@Req() req, @Param('id') id: string) {
     return this.ordersService.cancelOrder(Number(id), req.user.id);
@@ -55,5 +70,14 @@ export class OrdersController {
   @Get(':id')
   getOrderDetail(@Param('id') id: string) {
     return this.ordersService.getOrderDetail(Number(id));
+  }
+
+  private getClientIp(req) {
+    const forwardedFor = req.headers?.["x-forwarded-for"];
+    if (typeof forwardedFor === "string") {
+      return forwardedFor.split(",")[0].trim();
+    }
+
+    return req.ip || req.socket?.remoteAddress || "127.0.0.1";
   }
 }

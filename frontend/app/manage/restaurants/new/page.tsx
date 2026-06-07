@@ -15,7 +15,8 @@ import {
   Image as ImageIcon,
   CheckCircle,
   WarningCircle,
-  Plus
+  Plus,
+  Truck
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { createRestaurant, RestaurantPayload } from "@/lib/restaurant";
@@ -36,12 +37,16 @@ export default function CreateRestaurantPage() {
     phoneNumber: "",
     openTime: "08:00",
     closeTime: "22:00",
+    deliveryFee: 15000,
     imgage: ""
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "deliveryFee" ? Math.max(0, Number(value) || 0) : value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -182,6 +187,24 @@ export default function CreateRestaurantPage() {
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   placeholder="VD: 0901234567"
+                  className="h-14 w-full rounded-2xl bg-[#fffcf8] px-6 text-lg font-bold text-[#23140c] outline-none ring-2 ring-transparent transition-all focus:bg-white focus:ring-orange-500/20"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
+                  <Truck size={20} weight="bold" className="text-orange-500" />
+                  Phí vận chuyển
+                </label>
+                <input
+                  required
+                  min={0}
+                  step={1000}
+                  type="number"
+                  name="deliveryFee"
+                  value={formData.deliveryFee ?? 0}
+                  onChange={handleChange}
+                  placeholder="VD: 15000"
                   className="h-14 w-full rounded-2xl bg-[#fffcf8] px-6 text-lg font-bold text-[#23140c] outline-none ring-2 ring-transparent transition-all focus:bg-white focus:ring-orange-500/20"
                 />
               </div>

@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, Clock, CookingPot, Eye, Package, Receipt, Star, Truck, XCircle } from "@phosphor-icons/react";
+import { ArrowLeft, CheckCircle, Clock, CookingPot, CreditCard, Eye, Package, Receipt, Star, Truck, XCircle } from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
-import { cancelOrder, confirmOrderReceived, getMyOrders, OrderResponse } from "@/lib/order";
+import { cancelOrder, confirmOrderReceived, createVnpayPaymentUrl, getMyOrders, OrderResponse } from "@/lib/order";
 import { getRestaurantById, RestaurantResponse } from "@/lib/restaurant";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -16,6 +16,24 @@ const statusConfig: Record<string, { label: string; tone: string; step: number }
   completed: { label: "Đã nhận hàng", tone: "bg-emerald-50 text-emerald-700 ring-emerald-100", step: 4 },
   cancelled: { label: "Đã hủy", tone: "bg-red-50 text-red-700 ring-red-100", step: -1 },
 };
+
+const paymentMethodLabels: Record<string, string> = {
+  cash: "Tiền mặt",
+  online_card: "Thẻ / ví online",
+  bank_transfer: "Chuyển khoản QR",
+  vnpay: "VNPay",
+};
+
+const paymentStatusConfig: Record<string, { label: string; tone: string }> = {
+  pending: { label: "Chờ thanh toán", tone: "bg-amber-50 text-amber-700 ring-amber-100" },
+  awaiting_payment: { label: "Chờ thanh toán online", tone: "bg-orange-50 text-orange-700 ring-orange-100" },
+  paid: { label: "Đã thanh toán", tone: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
+  failed: { label: "Thanh toán lỗi", tone: "bg-red-50 text-red-700 ring-red-100" },
+};
+
+function isOnlinePayment(value: string) {
+  return value === "vnpay";
+}
 
 const steps = [
   { label: "Chờ xác nhận", icon: Clock },
@@ -50,6 +68,7 @@ export default function OrdersPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [receivingId, setReceivingId] = useState<number | null>(null);
+  const [payingId, setPayingId] = useState<number | null>(null);
   const [restaurantsById, setRestaurantsById] = useState<Record<number, RestaurantResponse>>({});
 
   const activeOrders = useMemo(() => orders.filter((order) => !["completed", "cancelled"].includes(order.orderStatus)), [orders]);
@@ -113,6 +132,19 @@ export default function OrdersPage() {
       setErrorMessage(error instanceof ApiError ? error.message : "Không thể hủy đơn hàng.");
     } finally {
       setCancellingId(null);
+    }
+  }
+
+  async function handleConfirmPayment(id: number) {
+    setPayingId(id);
+    setErrorMessage("");
+    try {
+      const { paymentUrl } = await createVnpayPaymentUrl(id);
+      window.location.href = paymentUrl;
+    } catch (error) {
+      setErrorMessage(error instanceof ApiError ? error.message : "Không thể xác nhận thanh toán.");
+    } finally {
+      setPayingId(null);
     }
   }
 
@@ -188,6 +220,8 @@ export default function OrdersPage() {
           <div className="space-y-6">
             {orders.map((order) => {
               const status = statusConfig[order.orderStatus] ?? statusConfig.pending;
+              const paymentStatus = paymentStatusConfig[order.paymentStatus] ?? paymentStatusConfig.pending;
+              const canPayOnline = isOnlinePayment(order.paymentMethod) && order.paymentStatus !== "paid" && order.orderStatus !== "cancelled";
               const canCancel = ["pending", "confirmed"].includes(order.orderStatus);
               const canReceive = order.orderStatus === "delivering";
               const canReview = order.orderStatus === "completed";
@@ -199,6 +233,7 @@ export default function OrdersPage() {
                       <div className="flex flex-wrap items-center gap-3">
                         <h2 className="text-2xl font-black text-[#23140c]">Đơn #{order.id}</h2>
                         <span className={`rounded-full px-3 py-1.5 text-xs font-black ring-1 ${status.tone}`}>{status.label}</span>
+                        <span className={`rounded-full px-3 py-1.5 text-xs font-black ring-1 ${paymentStatus.tone}`}>{paymentStatus.label}</span>
                       </div>
                       <p className="mt-2 text-sm font-bold text-[#704322]/55">
                         {formatDate(order.createdAt)} • {restaurant ? (
@@ -214,7 +249,7 @@ export default function OrdersPage() {
                     </div>
                     <div className="text-left lg:text-right">
                       <p className="text-2xl font-black text-[#ff6b00]">{formatMoney(order.totalAmount)}</p>
-                      <p className="mt-1 text-xs font-black uppercase tracking-widest text-[#704322]/45">{order.paymentMethod === "cash" ? "Tiền mặt" : "Thẻ"}</p>
+                      <p className="mt-1 text-xs font-black uppercase tracking-widest text-[#704322]/45">{paymentMethodLabels[order.paymentMethod] ?? "Thanh toán online"}</p>
                     </div>
                   </div>
 
@@ -244,6 +279,16 @@ export default function OrdersPage() {
                         <Eye size={18} weight="bold" />
                         Xem chi tiết
                       </Link>
+                      {canPayOnline && (
+                        <button
+                          onClick={() => handleConfirmPayment(order.id)}
+                          disabled={payingId === order.id}
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-[1rem] bg-orange-50 px-5 text-sm font-black text-orange-600 ring-1 ring-orange-100 transition-all hover:bg-orange-100 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
+                        >
+                          <CreditCard size={18} weight="bold" />
+                          {payingId === order.id ? "Đang chuyển..." : order.paymentStatus === "failed" ? "Thanh toán lại" : "Thanh toán"}
+                        </button>
+                      )}
                       {canReceive && (
                         <button
                           onClick={() => handleConfirmReceived(order.id)}

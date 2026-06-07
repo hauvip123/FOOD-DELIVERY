@@ -1,4 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createHmac } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CartItems } from 'src/entity/cart-items.entity';
 import { Carts } from 'src/entity/carts.entity';
@@ -16,9 +18,10 @@ export class OrdersService {
         @InjectRepository(DeliveryAddress) private readonly deliveryAddressRepository: Repository<DeliveryAddress>,
         @InjectRepository(Carts) private readonly cartsRepository: Repository<Carts>,
         @InjectRepository(CartItems) private readonly cartItemsRepostitory: Repository<CartItems>,
-        @InjectRepository(Restaurant) private readonly restaurantRepository: Repository<Restaurant>) { }
+        @InjectRepository(Restaurant) private readonly restaurantRepository: Repository<Restaurant>,
+        private readonly configService: ConfigService) { }
 
-    async create(userId: number, createOrder: CreateOrderDto) {
+    async create(userId: number, createOrder: CreateOrderDto, ipAddr = '127.0.0.1') {
         const cart = await this.cartsRepository.findOne({
             where: { userId }
         })
@@ -34,8 +37,17 @@ export class OrdersService {
             throw new BadRequestException("Cart is empty")
         }
         const subtotal = cartItems.reduce((sum, items) => sum + items.price * items.quantity, 0)
-        const deliveryFee = createOrder.deliveryFee || 0;
+        const restaurant = await this.restaurantRepository.findOne({
+            where: { id: cart.restaurantId }
+        })
+        if (!restaurant) {
+            throw new NotFoundException("Restaurant not found")
+        }
+        const deliveryFee = Number(restaurant.deliveryFee || 0);
         const totalAmount = subtotal + deliveryFee;
+        const paymentMethod = createOrder.paymentMethod === 'vnpay' ? 'vnpay' : (createOrder.paymentMethod || 'cash');
+        const paymentStatus = paymentMethod === 'cash' ? 'pending' : 'awaiting_payment';
+        const vnpayTxnRef = paymentMethod === 'vnpay' ? this.createVnpayTxnRef() : null;
 
         const order = this.orderRepository.create({
             userId: userId,
@@ -44,8 +56,9 @@ export class OrdersService {
             deliveryFee: deliveryFee,
             subtotal: subtotal,
             totalAmount: totalAmount,
-            paymentStatus: 'pending',
-            paymentMethod: createOrder.paymentMethod,
+            paymentStatus,
+            paymentMethod,
+            vnpayTxnRef,
             orderStatus: 'pending',
         })
         const saveOrder = await this.orderRepository.save(order)
@@ -74,10 +87,11 @@ export class OrdersService {
         await this.cartsRepository.delete({
             id: cart.id
         })
+        const paymentUrl = paymentMethod === 'vnpay' ? this.buildVnpayPaymentUrl(saveOrder, ipAddr) : undefined;
         return {
             statusCode: 200,
             message: "Order created successfully",
-            data: saveOrder
+            data: paymentUrl ? { ...saveOrder, paymentUrl } : saveOrder
         }
 
     }
@@ -322,12 +336,201 @@ export class OrdersService {
         }
 
         order.orderStatus = "completed"
+        order.paymentStatus = 'paid'
         await this.orderRepository.save(order)
         return {
             statusCode: 200,
             message: "Order received successfully",
             data: order
         }
+    }
+
+
+    async confirmPayment(orderId: number, userId: number) {
+        const order = await this.orderRepository.findOne({ where: { id: orderId } })
+        if (!order) {
+            throw new NotFoundException("Order not found")
+        }
+        if (order.userId !== userId) {
+            throw new ForbiddenException("You cannot confirm payment for this order")
+        }
+        if (order.paymentMethod === "vnpay") {
+            throw new BadRequestException("VNPAY payments must be verified by VNPAY return data")
+        }
+        if (order.paymentMethod === "cash") {
+            throw new BadRequestException("Cash orders cannot be paid online")
+        }
+        if (order.orderStatus === "cancelled") {
+            throw new BadRequestException("Cancelled orders cannot be paid")
+        }
+
+        order.paymentStatus = "paid"
+        await this.orderRepository.save(order)
+        return {
+            statusCode: 200,
+            message: "Payment confirmed successfully",
+            data: order
+        }
+    }
+
+    async createVnpayPaymentUrl(orderId: number, userId: number, ipAddr = "127.0.0.1") {
+        const order = await this.orderRepository.findOne({ where: { id: orderId } })
+        if (!order) {
+            throw new NotFoundException("Order not found")
+        }
+        if (order.userId !== userId) {
+            throw new ForbiddenException("You cannot pay this order")
+        }
+        if (order.paymentMethod !== "vnpay") {
+            throw new BadRequestException("This order is not a VNPAY order")
+        }
+        if (order.orderStatus === "cancelled") {
+            throw new BadRequestException("Cancelled orders cannot be paid")
+        }
+        if (order.paymentStatus === "paid") {
+            throw new BadRequestException("This order has already been paid")
+        }
+
+        order.vnpayTxnRef = this.createVnpayTxnRef()
+        order.paymentStatus = "awaiting_payment"
+        const savedOrder = await this.orderRepository.save(order)
+        return {
+            statusCode: 200,
+            message: "VNPAY payment URL created successfully",
+            data: {
+                order: savedOrder,
+                paymentUrl: this.buildVnpayPaymentUrl(savedOrder, ipAddr)
+            }
+        }
+    }
+
+    async handleVnpayReturn(query: Record<string, string | string[]>, userId: number) {
+        const params = this.normalizeVnpayQuery(query)
+        const secureHash = params.vnp_SecureHash
+        if (!secureHash) {
+            throw new BadRequestException("Missing VNPAY secure hash")
+        }
+
+        delete params.vnp_SecureHash
+        delete params.vnp_SecureHashType
+
+        const signed = this.signVnpayParams(params)
+        if (signed.toLowerCase() !== secureHash.toLowerCase()) {
+            throw new BadRequestException("Invalid VNPAY secure hash")
+        }
+
+        const order = await this.orderRepository.findOne({
+            where: { vnpayTxnRef: params.vnp_TxnRef }
+        })
+        if (!order) {
+            throw new NotFoundException("Order not found")
+        }
+        if (order.userId !== userId) {
+            throw new ForbiddenException("You cannot verify this payment")
+        }
+
+        const expectedAmount = String(Math.round(Number(order.totalAmount) * 100))
+        if (params.vnp_Amount !== expectedAmount) {
+            throw new BadRequestException("VNPAY amount does not match this order")
+        }
+
+        const isSuccess = params.vnp_ResponseCode === "00" && params.vnp_TransactionStatus === "00"
+        order.paymentStatus = isSuccess ? "paid" : "failed"
+        order.vnpayTransactionNo = params.vnp_TransactionNo || order.vnpayTransactionNo
+        await this.orderRepository.save(order)
+
+        return {
+            statusCode: 200,
+            message: isSuccess ? "VNPAY payment verified successfully" : "VNPAY payment was not successful",
+            data: {
+                order,
+                isSuccess,
+                responseCode: params.vnp_ResponseCode,
+                transactionStatus: params.vnp_TransactionStatus
+            }
+        }
+    }
+
+    private buildVnpayPaymentUrl(order: Order, ipAddr: string) {
+        if (!order.vnpayTxnRef) {
+            throw new BadRequestException("Missing VNPAY transaction reference")
+        }
+
+        const config = this.getVnpayConfig()
+        const now = new Date()
+        const expireDate = new Date(now.getTime() + 15 * 60 * 1000)
+        const params: Record<string, string> = {
+            vnp_Version: "2.1.0",
+            vnp_Command: "pay",
+            vnp_TmnCode: config.tmnCode,
+            vnp_Amount: String(Math.round(Number(order.totalAmount) * 100)),
+            vnp_CurrCode: "VND",
+            vnp_TxnRef: order.vnpayTxnRef,
+            vnp_OrderInfo: "Thanh toan don hang " + order.id,
+            vnp_OrderType: "food",
+            vnp_Locale: "vn",
+            vnp_ReturnUrl: config.returnUrl,
+            vnp_IpAddr: ipAddr,
+            vnp_CreateDate: this.formatVnpayDate(now),
+            vnp_ExpireDate: this.formatVnpayDate(expireDate)
+        }
+
+        const secureHash = this.signVnpayParams(params)
+        return config.paymentUrl + "?" + this.stringifyVnpayParams({ ...params, vnp_SecureHash: secureHash })
+    }
+
+    private getVnpayConfig() {
+        const tmnCode = this.configService.get<string>("VNPAY_TMN_CODE")
+        const hashSecret = this.configService.get<string>("VNPAY_HASH_SECRET")
+        const paymentUrl = this.configService.get<string>("VNPAY_PAYMENT_URL") || "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+        const frontendUrl = (this.configService.get<string>("FRONTEND_URL") || "http://localhost:3001").replace(/\/$/, "")
+        const returnUrl = this.configService.get<string>("VNPAY_RETURN_URL") || frontendUrl + "/payment/vnpay-return"
+
+        if (!tmnCode || !hashSecret) {
+            throw new BadRequestException("Missing VNPAY_TMN_CODE or VNPAY_HASH_SECRET configuration")
+        }
+
+        return { tmnCode, hashSecret, paymentUrl, returnUrl }
+    }
+
+    private createVnpayTxnRef() {
+        return "HD" + Date.now() + Math.floor(Math.random() * 1000).toString().padStart(3, "0")
+    }
+
+    private signVnpayParams(params: Record<string, string>) {
+        const config = this.getVnpayConfig()
+        return createHmac("sha512", config.hashSecret)
+            .update(this.stringifyVnpayParams(params))
+            .digest("hex")
+    }
+
+    private stringifyVnpayParams(params: Record<string, string>) {
+        return Object.keys(params)
+            .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== "")
+            .sort()
+            .map((key) => this.encodeVnpayValue(key) + "=" + this.encodeVnpayValue(params[key]))
+            .join("&")
+    }
+
+    private encodeVnpayValue(value: string) {
+        return encodeURIComponent(value).replace(/%20/g, "+")
+    }
+
+    private normalizeVnpayQuery(query: Record<string, string | string[]>) {
+        return Object.fromEntries(
+            Object.entries(query).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])
+        ) as Record<string, string>
+    }
+
+    private formatVnpayDate(date: Date) {
+        const vietnamDate = new Date(date.getTime() + 7 * 60 * 60 * 1000)
+        const pad = (value: number) => value.toString().padStart(2, "0")
+        return String(vietnamDate.getUTCFullYear())
+            + pad(vietnamDate.getUTCMonth() + 1)
+            + pad(vietnamDate.getUTCDate())
+            + pad(vietnamDate.getUTCHours())
+            + pad(vietnamDate.getUTCMinutes())
+            + pad(vietnamDate.getUTCSeconds())
     }
 
     async cancelOrder(orderId: number, userId: number) {

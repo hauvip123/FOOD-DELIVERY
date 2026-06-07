@@ -15,6 +15,7 @@ import {
   MapPin,
   Star,
   Storefront,
+  Truck,
   X,
 } from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
@@ -64,6 +65,16 @@ function buildImageUrl(restaurant: RestaurantResponse) {
 
 function formatRating(value: number) {
   return Number(value || 0).toFixed(1);
+}
+
+function formatDeliveryFee(value?: number) {
+  const fee = Number(value || 0);
+  if (fee <= 0) return "Miễn phí";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(fee);
 }
 
 function getSortParts(sort: SortValue) {
@@ -605,6 +616,16 @@ export default function RestaurantsPage() {
                             />
                             <span className="truncate">
                               {restaurant.openTime} - {restaurant.closeTime}
+                            </span>
+                          </div>
+                          <div className="flex min-w-0 items-center gap-2 rounded-[1rem] bg-orange-50 px-3 py-2.5 text-[#ff6b00] sm:col-span-2">
+                            <Truck
+                              size={16}
+                              weight="bold"
+                              className="shrink-0"
+                            />
+                            <span className="truncate">
+                              Phí giao {formatDeliveryFee(restaurant.deliveryFee)}
                             </span>
                           </div>
                         </div>

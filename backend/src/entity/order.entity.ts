@@ -32,6 +32,12 @@ export class Order {
     @Column({ default: 'cash' })
     paymentMethod: string
 
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    vnpayTxnRef: string | null
+
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    vnpayTransactionNo: string | null
+
     @Column({ default: 'pending' })
     orderStatus: string
 

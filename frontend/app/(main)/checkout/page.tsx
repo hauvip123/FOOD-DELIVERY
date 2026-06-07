@@ -1,14 +1,22 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, MapPin, Phone, Receipt, Storefront, Truck } from "@phosphor-icons/react";
+import { ArrowLeft, CheckCircle, CreditCard, MapPin, MoneyWavy, Phone, Receipt, Truck } from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
 import { createOrder, OrderResponse } from "@/lib/order";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { getRestaurantById } from "@/lib/restaurant";
 
-const DELIVERY_FEE = 15000;
+const paymentOptions = [
+  { value: "cash", label: "Tiền mặt", description: "Thanh toán khi nhận hàng", icon: MoneyWavy },
+  { value: "vnpay", label: "VNPay", description: "Thanh toán qua cổng VNPay", icon: CreditCard },
+];
+
+function isOnlinePayment(value: string) {
+  return value === "vnpay";
+}
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat("vi-VN", {
@@ -26,11 +34,42 @@ export default function CheckoutPage() {
   const [city, setCity] = useState("");
   const [note, setNote] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [deliveryFee, setDeliveryFee] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [createdOrder, setCreatedOrder] = useState<OrderResponse | null>(null);
 
-  const grandTotal = useMemo(() => totalPrice + (items.length > 0 ? DELIVERY_FEE : 0), [items.length, totalPrice]);
+  const restaurantId = items[0]?.restaurantId;
+
+  useEffect(() => {
+    let isCurrentRequest = true;
+
+    async function loadDeliveryFee() {
+      if (!restaurantId) {
+        setDeliveryFee(0);
+        return;
+      }
+
+      try {
+        const restaurant = await getRestaurantById(restaurantId);
+        if (isCurrentRequest) {
+          setDeliveryFee(Number(restaurant.deliveryFee || 0));
+        }
+      } catch {
+        if (isCurrentRequest) {
+          setDeliveryFee(0);
+        }
+      }
+    }
+
+    loadDeliveryFee();
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [restaurantId]);
+
+  const grandTotal = useMemo(() => totalPrice + deliveryFee, [deliveryFee, totalPrice]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,10 +94,14 @@ export default function CheckoutPage() {
         city,
         note: note || undefined,
         paymentMethod,
-        deliveryFee: DELIVERY_FEE,
+        deliveryFee,
       });
-      setCreatedOrder(order);
       await clearCart();
+      if (order.paymentUrl) {
+        window.location.href = order.paymentUrl;
+        return;
+      }
+      setCreatedOrder(order);
     } catch (error) {
       setErrorMessage(error instanceof ApiError ? error.message : "Không thể tạo đơn hàng.");
     } finally {
@@ -101,7 +144,6 @@ export default function CheckoutPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-[#fffcf8] pt-32 pb-24 lg:pt-40">
       <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10">
@@ -182,21 +224,30 @@ export default function CheckoutPage() {
 
             <div className="space-y-3">
               <p className="text-sm font-black text-[#23140c]">Thanh toán</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  { value: "cash", label: "Tiền mặt" },
-                  { value: "card", label: "Thẻ" },
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setPaymentMethod(option.value)}
-                    className={`h-14 rounded-[1rem] text-sm font-black transition-all active:scale-95 ${paymentMethod === option.value ? "bg-[#23140c] text-white" : "bg-[#fffcf8] text-[#704322] ring-1 ring-[#23140c]/10 hover:text-[#ff6b00]"}`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+              <div className="grid gap-3 md:grid-cols-3">
+                {paymentOptions.map((option) => {
+                  const Icon = option.icon;
+                  const isSelected = paymentMethod === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setPaymentMethod(option.value)}
+                      className={`min-h-24 rounded-[1rem] p-4 text-left transition-all active:scale-95 ${isSelected ? "bg-[#23140c] text-white" : "bg-[#fffcf8] text-[#704322] ring-1 ring-[#23140c]/10 hover:text-[#ff6b00]"}`}
+                    >
+                      <Icon size={24} weight="bold" className={isSelected ? "text-orange-400" : "text-[#ff6b00]"} />
+                      <span className="mt-3 block text-sm font-black">{option.label}</span>
+                      <span className={`mt-1 block text-xs font-bold ${isSelected ? "text-white/55" : "text-[#704322]/45"}`}>{option.description}</span>
+                    </button>
+                  );
+                })}
               </div>
+              {isOnlinePayment(paymentMethod) && (
+                <div className="flex gap-3 rounded-[1.25rem] bg-orange-50 p-4 text-sm font-bold text-[#704322] ring-1 ring-orange-100">
+                  <CreditCard size={22} weight="bold" className="shrink-0 text-[#ff6b00]" />
+                  <p>Bạn sẽ được chuyển sang cổng VNPay để chọn ngân hàng/thẻ và hoàn tất thanh toán.</p>
+                </div>
+              )}
             </div>
 
             <button
@@ -238,7 +289,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between text-sm font-bold text-white/55">
                     <span>Phí giao hàng</span>
-                    <span>{formatMoney(DELIVERY_FEE)}</span>
+                    <span>{formatMoney(deliveryFee)}</span>
                   </div>
                   <div className="flex items-end justify-between pt-3">
                     <span className="text-lg font-bold">Tổng cộng</span>

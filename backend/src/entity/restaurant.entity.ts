@@ -44,6 +44,9 @@ export class Restaurant {
     @Column({ default: true })
     isOpen: boolean;
 
+    @Column({ type: 'float', default: 15000 })
+    deliveryFee: number;
+
     @Column({ type: 'float', default: 0.0 })
     ratingAverage: number;
 

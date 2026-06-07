@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,9 +19,11 @@ import {
   ShoppingCart
 } from "@phosphor-icons/react";
 import { useCart, CartItem } from "@/contexts/CartContext";
+import { getRestaurantById } from "@/lib/restaurant";
 
 export default function CartPage() {
   const { items, addToCart, removeFromCart, clearCart, totalPrice, totalItems, errorMessage } = useCart();
+  const [deliveryFee, setDeliveryFee] = useState(0);
 
   // Group items by restaurant
   const groupedItems = useMemo(() => {
@@ -37,7 +39,36 @@ export default function CartPage() {
     }, {} as Record<number, { name: string; items: CartItem[] }>);
   }, [items]);
 
-  const deliveryFee = items.length > 0 ? 15000 : 0;
+  const restaurantId = items[0]?.restaurantId;
+
+  useEffect(() => {
+    let isCurrentRequest = true;
+
+    async function loadDeliveryFee() {
+      if (!restaurantId) {
+        setDeliveryFee(0);
+        return;
+      }
+
+      try {
+        const restaurant = await getRestaurantById(restaurantId);
+        if (isCurrentRequest) {
+          setDeliveryFee(Number(restaurant.deliveryFee || 0));
+        }
+      } catch {
+        if (isCurrentRequest) {
+          setDeliveryFee(0);
+        }
+      }
+    }
+
+    loadDeliveryFee();
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [restaurantId]);
+
   const grandTotal = totalPrice + deliveryFee;
 
   if (items.length === 0) {

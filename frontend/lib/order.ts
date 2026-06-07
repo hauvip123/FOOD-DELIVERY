@@ -20,6 +20,9 @@ export type OrderResponse = {
   orderStatus: string;
   createdAt: string;
   updatedAt: string;
+  paymentUrl?: string;
+  vnpayTxnRef?: string | null;
+  vnpayTransactionNo?: string | null;
 };
 
 export type OrderItemResponse = {
@@ -130,6 +133,32 @@ export async function confirmOrderReceived(id: number) {
   const response = await apiRequest<ApiResponse<OrderResponse>>(`/orders/${id}/received`, {
     method: "PATCH",
   });
+  return response.data;
+}
+
+export async function confirmOrderPayment(id: number) {
+  const response = await apiRequest<ApiResponse<OrderResponse>>(`/orders/${id}/payment`, {
+    method: "PATCH",
+  });
+  return response.data;
+}
+
+export async function createVnpayPaymentUrl(id: number) {
+  const response = await apiRequest<ApiResponse<{ order: OrderResponse; paymentUrl: string }>>(`/orders/${id}/vnpay-payment-url`, {
+    method: "POST",
+  });
+  return response.data;
+}
+
+export type VnpayReturnResponse = {
+  order: OrderResponse;
+  isSuccess: boolean;
+  responseCode?: string;
+  transactionStatus?: string;
+};
+
+export async function verifyVnpayReturn(queryString: string) {
+  const response = await apiRequest<ApiResponse<VnpayReturnResponse>>(`/orders/vnpay-return?${queryString}`);
   return response.data;
 }
 

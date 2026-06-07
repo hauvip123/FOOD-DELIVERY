@@ -65,6 +65,16 @@ function formatRating(value: number) {
   return Number(value || 0).toFixed(1);
 }
 
+function formatDeliveryFee(value?: number) {
+  const fee = Number(value || 0);
+  if (fee <= 0) return "Miễn phí";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(fee);
+}
+
 function buildRestaurantImage(restaurant: RestaurantResponse) {
   return restaurant.imgage?.trim() || FALLBACK_IMAGE.replace("hungerdash-restaurant", "restaurant-" + restaurant.id);
 }
@@ -77,7 +87,7 @@ function buildRestaurants(restaurants: RestaurantResponse[]): RestaurantCard[] {
     rating: formatRating(restaurant.ratingAverage),
     reviews: 320 + restaurant.id * 17 > 1000 ? "1k+" : String(320 + restaurant.id * 17),
     time: 18 + (restaurant.id % 12) + "-" + (28 + (restaurant.id % 16)),
-    delivery: restaurant.id % 3 === 0 ? "Miễn phí" : 10 + (restaurant.id % 8) + "k",
+    delivery: formatDeliveryFee(restaurant.deliveryFee),
     distance: (0.8 + (restaurant.id % 7) * 0.4).toFixed(1) + " km",
     isOpen: restaurant.isOpen,
     image: buildRestaurantImage(restaurant),
@@ -188,7 +198,7 @@ export function FeaturedRestaurants({ restaurants = [], isLoading = false }: Fea
                       </div>
                       <div className="flex items-center gap-2 rounded-2xl bg-[#fff7ed] px-4 py-2.5 text-xs font-bold text-[#704322]">
                         <Truck size={16} weight="bold" />
-                        {res.delivery}
+                        Phí giao {res.delivery}
                       </div>
                     </div>
                   </div>
