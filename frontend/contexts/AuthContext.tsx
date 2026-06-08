@@ -1,8 +1,21 @@
 "use client";
 
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { AuthSession, AuthUser } from "@/lib/auth";
-import { login as loginRequest, logout as logoutRequest, refreshAccessToken } from "@/lib/auth";
+import {
+  login as loginRequest,
+  loginWithGoogle as loginWithGoogleRequest,
+  logout as logoutRequest,
+  refreshAccessToken,
+} from "@/lib/auth";
 
 type LoginPayload = {
   email: string;
@@ -15,6 +28,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (payload: LoginPayload) => Promise<AuthSession>;
+  loginWithGoogle: (credential: string) => Promise<AuthSession>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<AuthSession | null>;
   updateUser: (user: AuthUser) => void;
@@ -76,12 +90,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timerId);
   }, [clearSession, refreshSession]);
 
-  const login = useCallback(async (payload: LoginPayload) => {
-    const response = await loginRequest(payload);
-    saveSession(response.data);
-    return response.data;
-  }, [saveSession]);
+  const login = useCallback(
+    async (payload: LoginPayload) => {
+      const response = await loginRequest(payload);
+      saveSession(response.data);
+      return response.data;
+    },
+    [saveSession],
+  );
 
+  const loginWithGoogle = useCallback(
+    async (credential: string) => {
+      const response = await loginWithGoogleRequest({ credential });
+      saveSession(response.data);
+      return response.data;
+    },
+    [saveSession],
+  );
 
   const updateUser = useCallback((nextUser: AuthUser) => {
     setUser(nextUser);
@@ -96,16 +121,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearSession]);
 
-  const value = useMemo<AuthContextValue>(() => ({
-    user,
-    accessToken,
-    isAuthenticated: Boolean(user && accessToken),
-    isLoading,
-    login,
-    logout,
-    refreshSession,
-    updateUser,
-  }), [accessToken, isLoading, login, logout, refreshSession, updateUser, user]);
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      accessToken,
+      isAuthenticated: Boolean(user && accessToken),
+      isLoading,
+      login,
+      loginWithGoogle,
+      logout,
+      refreshSession,
+      updateUser,
+    }),
+    [
+      accessToken,
+      isLoading,
+      login,
+      loginWithGoogle,
+      logout,
+      refreshSession,
+      updateUser,
+      user,
+    ],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

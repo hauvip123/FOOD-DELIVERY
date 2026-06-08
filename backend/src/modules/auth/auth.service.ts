@@ -10,14 +10,20 @@ import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
+import { User } from 'src/entity/user.entity';
+import { MailService } from './mail.service';
 
 const RESET_PASSWORD_EXPIRES_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
+  private readonly googleClient = new OAuth2Client();
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async register(userData: RegisterDto) {
@@ -60,37 +66,72 @@ export class AuthService {
       throw new UnauthorizedException('Account is inactive');
     }
 
-    const payload = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    const session = await this.createSession(user);
 
-    const accessToken = await this.jwtService.signAsync(payload);
-    const refreshToken = await this.jwtService.signAsync(payload, {
-      expiresIn: '7d',
-    });
-    await this.usersService.updateToken(user.id, refreshToken);
-
-    const {
-      password,
-      refreshToken: rf,
-      resetPasswordToken,
-      resetPasswordExpires,
-      ...result
-    } = user;
-    void password;
-    void rf;
-    void resetPasswordToken;
-    void resetPasswordExpires;
     return {
-      refreshToken,
+      refreshToken: session.refreshToken,
       response: {
         statusCode: 200,
         message: 'Login successfully',
         data: {
-          user: result,
-          accessToken,
+          user: session.user,
+          accessToken: session.accessToken,
+        },
+      },
+    };
+  }
+
+  async loginWithGoogle(credential: string) {
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+
+    if (!googleClientId) {
+      throw new BadRequestException('Google login is not configured');
+    }
+
+    const ticket = await this.googleClient.verifyIdToken({
+      idToken: credential,
+      audience: googleClientId,
+    });
+    const payload = ticket.getPayload();
+
+    if (!payload?.email || !payload.email_verified) {
+      throw new UnauthorizedException('Google account email is not verified');
+    }
+
+    let user = await this.usersService.findByEmail(payload.email);
+
+    if (!user) {
+      const fallbackName = payload.email.split('@')[0];
+      const randomPassword = await bcrypt.hash(
+        randomBytes(32).toString('hex'),
+        10,
+      );
+
+      user = await this.usersService.create({
+        username: payload.name ?? fallbackName,
+        email: payload.email,
+        password: randomPassword,
+        avatar: payload.picture ?? null,
+        role: 'customer',
+        status: 'active',
+      });
+    }
+
+    if (user.status !== 'active') {
+      await this.usersService.updateToken(user.id, null);
+      throw new UnauthorizedException('Account is inactive');
+    }
+
+    const session = await this.createSession(user);
+
+    return {
+      refreshToken: session.refreshToken,
+      response: {
+        statusCode: 200,
+        message: 'Login with Google successfully',
+        data: {
+          user: session.user,
+          accessToken: session.accessToken,
         },
       },
     };
@@ -119,17 +160,7 @@ export class AuthService {
       role: user.role,
     };
     const accessToken = await this.jwtService.signAsync(payload);
-    const {
-      password,
-      refreshToken: rf,
-      resetPasswordToken,
-      resetPasswordExpires,
-      ...result
-    } = user;
-    void password;
-    void rf;
-    void resetPasswordToken;
-    void resetPasswordExpires;
+    const result = this.toSafeUser(user);
 
     return {
       statusCode: 200,
@@ -160,7 +191,7 @@ export class AuthService {
         ? frontendUrl.slice(0, -1)
         : frontendUrl;
       const resetUrl = resetBaseUrl + '/reset-password?token=' + resetToken;
-      console.log('Reset password link for ' + user.email + ': ' + resetUrl);
+      await this.mailService.sendPasswordResetEmail(user.email, resetUrl);
     }
 
     return {
@@ -209,5 +240,41 @@ export class AuthService {
 
   private hashResetToken(token: string) {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async createSession(user: User) {
+    const payload = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const accessToken = await this.jwtService.signAsync(payload);
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      expiresIn: '7d',
+    });
+    await this.usersService.updateToken(user.id, refreshToken);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: this.toSafeUser(user),
+    };
+  }
+
+  private toSafeUser(user: User) {
+    const {
+      password,
+      refreshToken,
+      resetPasswordToken,
+      resetPasswordExpires,
+      ...result
+    } = user;
+    void password;
+    void refreshToken;
+    void resetPasswordToken;
+    void resetPasswordExpires;
+
+    return result;
   }
 }

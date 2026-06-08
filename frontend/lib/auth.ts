@@ -63,7 +63,11 @@ type ResetPasswordResponse = {
   message: string;
 };
 
-export function register(payload: { username: string; email: string; password: string }) {
+export function register(payload: {
+  username: string;
+  email: string;
+  password: string;
+}) {
   return apiRequest<RegisterResponse>("/auth/register", {
     method: "POST",
     body: jsonBody(payload),
@@ -72,6 +76,13 @@ export function register(payload: { username: string; email: string; password: s
 
 export function login(payload: { email: string; password: string }) {
   return apiRequest<AuthResponse>("/auth/login", {
+    method: "POST",
+    body: jsonBody(payload),
+  });
+}
+
+export function loginWithGoogle(payload: { credential: string }) {
+  return apiRequest<AuthResponse>("/auth/google", {
     method: "POST",
     body: jsonBody(payload),
   });
