@@ -13,6 +13,36 @@ export class MailService {
     const smtpFrom = process.env.SMTP_FROM ?? smtpUser;
     const smtpSecure = process.env.SMTP_SECURE === 'true';
     const smtpTimeout = Number(process.env.SMTP_TIMEOUT_MS ?? 15000);
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendFrom = process.env.RESEND_FROM ?? smtpFrom;
+    const subject = 'Đặt lại mật khẩu HungerDash';
+    const text =
+      'Bạn vừa yêu cầu đặt lại mật khẩu HungerDash. Mở link này trong 15 phút: ' +
+      resetUrl;
+    const html = this.getPasswordResetHtml(resetUrl);
+
+    if (resendApiKey) {
+      if (!resendFrom) {
+        this.logger.warn(
+          'RESEND_FROM is not configured. Password reset link for ' +
+            email +
+            ': ' +
+            resetUrl,
+        );
+        return;
+      }
+
+      await this.sendWithResend(
+        resendApiKey,
+        resendFrom,
+        email,
+        subject,
+        text,
+        html,
+        smtpTimeout,
+      );
+      return;
+    }
 
     if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom) {
       this.logger.warn(
@@ -41,11 +71,9 @@ export class MailService {
       await transporter.sendMail({
         from: smtpFrom,
         to: email,
-        subject: 'Đặt lại mật khẩu HungerDash',
-        text:
-          'Bạn vừa yêu cầu đặt lại mật khẩu HungerDash. Mở link này trong 15 phút: ' +
-          resetUrl,
-        html: this.getPasswordResetHtml(resetUrl),
+        subject,
+        text,
+        html,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -60,6 +88,55 @@ export class MailService {
           message,
       );
       throw error;
+    }
+  }
+
+  private async sendWithResend(
+    apiKey: string,
+    from: string,
+    to: string,
+    subject: string,
+    text: string,
+    html: string,
+    timeoutMs: number,
+  ) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from,
+          to,
+          subject,
+          text,
+          html,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const responseBody = await response.text();
+        throw new Error(
+          'Resend API failed with status ' +
+            response.status +
+            ': ' +
+            responseBody,
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        'Failed to send password reset email via Resend. ' + message,
+      );
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

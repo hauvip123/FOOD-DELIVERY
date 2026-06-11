@@ -129,6 +129,8 @@ SMTP_USER=your-gmail-address@gmail.com
 SMTP_PASS=your-google-app-password
 SMTP_FROM=HungerDash <your-gmail-address@gmail.com>
 SMTP_TIMEOUT_MS=15000
+RESEND_API_KEY=your-resend-api-key
+RESEND_FROM=HungerDash <onboarding@resend.dev>
 ```
 
 Configure frontend in frontend/.env.local:
@@ -179,7 +181,7 @@ http://localhost:3000
 - Do not commit .env or .env.local because they contain sensitive values.
 - For Google Login, create a Web application OAuth Client and add http://localhost:3001 to Authorized JavaScript origins.
 - For password reset with Gmail, SMTP_PASS must be a Google App Password, not your normal Gmail password.
-- Gmail SMTP uses port 587 with SMTP_SECURE=false for STARTTLS, or port 465 with SMTP_SECURE=true for SSL. If production logs show ETIMEDOUT at command CONN, the host cannot open an SMTP connection; check outbound SMTP restrictions on the deploy provider or use an email API provider such as SendGrid, Resend, Mailgun, or Brevo.
+- Gmail SMTP uses port 587 with SMTP_SECURE=false for STARTTLS, or port 465 with SMTP_SECURE=true for SSL. If production logs show ETIMEDOUT at command CONN, the host cannot open an SMTP connection. Set RESEND_API_KEY and RESEND_FROM to send password reset emails through the Resend Email API instead of SMTP.
 - In production, use a strong JWT_SECRET and do not enable TYPEORM_SYNC=true.
 
 ## Quick Deploy
