@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
@@ -191,7 +192,14 @@ export class AuthService {
         ? frontendUrl.slice(0, -1)
         : frontendUrl;
       const resetUrl = resetBaseUrl + '/reset-password?token=' + resetToken;
-      await this.mailService.sendPasswordResetEmail(user.email, resetUrl);
+
+      try {
+        await this.mailService.sendPasswordResetEmail(user.email, resetUrl);
+      } catch {
+        throw new ServiceUnavailableException(
+          'Không thể gửi email đặt lại mật khẩu lúc này. Vui lòng thử lại sau.',
+        );
+      }
     }
 
     return {
