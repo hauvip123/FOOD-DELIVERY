@@ -122,6 +122,13 @@ TYPEORM_SYNC=false
 JWT_SECRET=your-strong-jwt-secret
 FRONTEND_URL=http://localhost:3001
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-gmail-address@gmail.com
+SMTP_PASS=your-google-app-password
+SMTP_FROM=HungerDash <your-gmail-address@gmail.com>
+SMTP_TIMEOUT_MS=15000
 ```
 
 Configure frontend in frontend/.env.local:
@@ -172,6 +179,7 @@ http://localhost:3000
 - Do not commit .env or .env.local because they contain sensitive values.
 - For Google Login, create a Web application OAuth Client and add http://localhost:3001 to Authorized JavaScript origins.
 - For password reset with Gmail, SMTP_PASS must be a Google App Password, not your normal Gmail password.
+- Gmail SMTP uses port 587 with SMTP_SECURE=false for STARTTLS, or port 465 with SMTP_SECURE=true for SSL. If production logs show ETIMEDOUT at command CONN, the host cannot open an SMTP connection; check outbound SMTP restrictions on the deploy provider or use an email API provider such as SendGrid, Resend, Mailgun, or Brevo.
 - In production, use a strong JWT_SECRET and do not enable TYPEORM_SYNC=true.
 
 ## Quick Deploy

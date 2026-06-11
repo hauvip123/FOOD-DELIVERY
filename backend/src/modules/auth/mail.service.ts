@@ -11,6 +11,8 @@ export class MailService {
     const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;
     const smtpFrom = process.env.SMTP_FROM ?? smtpUser;
+    const smtpSecure = process.env.SMTP_SECURE === 'true';
+    const smtpTimeout = Number(process.env.SMTP_TIMEOUT_MS ?? 15000);
 
     if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom) {
       this.logger.warn(
@@ -25,22 +27,40 @@ export class MailService {
     const transporter = createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure: process.env.SMTP_SECURE === 'true',
+      secure: smtpSecure,
       auth: {
         user: smtpUser,
         pass: smtpPass,
       },
+      connectionTimeout: smtpTimeout,
+      greetingTimeout: smtpTimeout,
+      socketTimeout: smtpTimeout,
     });
 
-    await transporter.sendMail({
-      from: smtpFrom,
-      to: email,
-      subject: 'Đặt lại mật khẩu HungerDash',
-      text:
-        'Bạn vừa yêu cầu đặt lại mật khẩu HungerDash. Mở link này trong 15 phút: ' +
-        resetUrl,
-      html: this.getPasswordResetHtml(resetUrl),
-    });
+    try {
+      await transporter.sendMail({
+        from: smtpFrom,
+        to: email,
+        subject: 'Đặt lại mật khẩu HungerDash',
+        text:
+          'Bạn vừa yêu cầu đặt lại mật khẩu HungerDash. Mở link này trong 15 phút: ' +
+          resetUrl,
+        html: this.getPasswordResetHtml(resetUrl),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        'Failed to send password reset email via ' +
+          smtpHost +
+          ':' +
+          smtpPort +
+          ' secure=' +
+          smtpSecure +
+          '. ' +
+          message,
+      );
+      throw error;
+    }
   }
 
   private getPasswordResetHtml(resetUrl: string) {
