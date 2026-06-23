@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState, useMemo } from "react";
 import { 
   Storefront, 
@@ -9,62 +8,17 @@ import {
   MapPin, 
   ForkKnife, 
   Star,
-  WarningCircle,
   Calendar,
-  Clock,
-  Circle,
-  TrendUp
 } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { Variants } from "framer-motion";
 import { getAdminRestaurants, AdminRestaurant } from "@/lib/admin";
 import { ApiError } from "@/lib/api";
+import RestaurantStatusBadge from "@/components/admin/RestaurantStatusBadge";
+import Skeleton from "@/components/admin/Skeleton";
+import ErrorMesage from "@/components/admin/ErrorMesage";
+import { formatDate, listContainerVariants, listItemVariants } from "@/components/admin/type";
 
 // --- Sub-components ---
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
-function StatusBadge({ isOpen }: { isOpen: boolean }) {
-  return (
-    <div className={`flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ring-1 ${
-      isOpen 
-        ? "bg-emerald-50 text-emerald-600 ring-emerald-100" 
-        : "bg-slate-50 text-slate-400 ring-slate-100"
-    }`}>
-      <span className={`flex size-1 rounded-full ${isOpen ? "bg-emerald-500" : "bg-slate-400"}`} />
-      {isOpen ? "Đang mở" : "Tạm nghỉ"}
-    </div>
-  );
-}
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-    },
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { y: 10, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 20,
-    },
-  },
-};
 
 export default function AdminRestaurantsPage() {
   const [restaurants, setRestaurants] = useState<AdminRestaurant[]>([]);
@@ -107,28 +61,13 @@ export default function AdminRestaurantsPage() {
   }, [restaurants, searchQuery, cityFilter, statusFilter]);
 
   if (errorMessage) {
-    return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center p-8">
-        <div className="grid size-20 place-items-center rounded-3xl bg-red-50 text-red-500">
-          <WarningCircle size={40} weight="bold" />
-        </div>
-        <h2 className="mt-6 text-2xl font-black tracking-tight text-[#1c1917]">Đã xảy ra lỗi</h2>
-        <p className="mt-2 text-slate-500 font-bold">{errorMessage}</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="mt-8 rounded-2xl bg-[#1c1917] px-8 py-3 text-sm font-black text-white transition-transform active:scale-95"
-        >
-          Thử lại
-        </button>
-      </div>
-    );
+    return <ErrorMesage errorMessage={errorMessage} />;
   }
-
   return (
     <motion.div 
       initial="hidden"
       animate="visible"
-      variants={containerVariants}
+      variants={listContainerVariants}
       className="space-y-8 pb-20"
     >
       {/* Header Section */}
@@ -142,7 +81,7 @@ export default function AdminRestaurantsPage() {
             <span className="flex size-2 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.5)]" />
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Hệ thống</p>
           </motion.div>
-          <h1 className="mt-3 text-5xl font-black tracking-tight text-[#1c1917]">Nhà hàng</h1>
+          <h1 className="mt-3 text-5xl font-black tracking-tight text-stone-900">Nhà hàng</h1>
           <p className="mt-4 max-w-2xl text-base font-bold leading-relaxed text-slate-400">
             Quản lý tất cả các đối tác nhà hàng, theo dõi trạng thái hoạt động và đánh giá từ khách hàng.
           </p>
@@ -156,7 +95,7 @@ export default function AdminRestaurantsPage() {
               placeholder="Tìm tên, loại món..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-14 w-full rounded-[1.5rem] border border-slate-200 bg-white pl-12 pr-6 text-sm font-bold text-[#1c1917] shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 md:w-80"
+              className="h-14 w-full rounded-[1.5rem] border border-slate-200 bg-white pl-12 pr-6 text-sm font-bold text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 md:w-80"
             />
           </div>
           
@@ -165,7 +104,7 @@ export default function AdminRestaurantsPage() {
               <select 
                 value={cityFilter}
                 onChange={(e) => setCityFilter(e.target.value)}
-                className="appearance-none h-14 rounded-[1.5rem] border border-slate-200 bg-white pl-12 pr-10 text-sm font-black text-[#1c1917] shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 cursor-pointer"
+                className="appearance-none h-14 rounded-[1.5rem] border border-slate-200 bg-white pl-12 pr-10 text-sm font-black text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 cursor-pointer"
               >
                 <option value="all">Thành phố</option>
                 {cities.map(city => (
@@ -179,7 +118,7 @@ export default function AdminRestaurantsPage() {
               <select 
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none h-14 rounded-[1.5rem] border border-slate-200 bg-white pl-12 pr-10 text-sm font-black text-[#1c1917] shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 cursor-pointer"
+                className="appearance-none h-14 rounded-[1.5rem] border border-slate-200 bg-white pl-12 pr-10 text-sm font-black text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 cursor-pointer"
               >
                 <option value="all">Trạng thái</option>
                 <option value="open">Đang mở</option>
@@ -194,15 +133,13 @@ export default function AdminRestaurantsPage() {
       {/* Restaurants List */}
       <div className="grid grid-cols-1 gap-4">
         {isLoading ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-32 animate-pulse rounded-[2.5rem] bg-white ring-1 ring-slate-100" />
-          ))
+          <Skeleton />
         ) : filteredRestaurants.length === 0 ? (
           <div className="flex h-96 flex-col items-center justify-center rounded-[2.5rem] border-2 border-dashed border-slate-200 bg-white/50 text-center">
             <div className="grid size-20 place-items-center rounded-3xl bg-slate-100 text-slate-300">
               <Storefront size={48} weight="bold" />
             </div>
-            <h2 className="mt-6 text-2xl font-black tracking-tight text-[#1c1917]">Không tìm thấy nhà hàng</h2>
+            <h2 className="mt-6 text-2xl font-black tracking-tight text-stone-900">Không tìm thấy nhà hàng</h2>
             <p className="mt-2 text-slate-400 font-bold">Hãy thử tìm kiếm với từ khóa khác.</p>
           </div>
         ) : (
@@ -211,7 +148,7 @@ export default function AdminRestaurantsPage() {
               <motion.div
                 key={res.id}
                 layout
-                variants={itemVariants}
+                variants={listItemVariants}
                 initial="hidden"
                 animate="visible"
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -232,10 +169,10 @@ export default function AdminRestaurantsPage() {
                 {/* Info Main */}
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex flex-wrap items-center gap-3">
-                    <h3 className="truncate text-xl font-black tracking-tight text-[#1c1917] group-hover:text-orange-600 transition-colors">
+                    <h3 className="truncate text-xl font-black tracking-tight text-stone-900 group-hover:text-orange-600 transition-colors">
                       {res.name}
                     </h3>
-                    <StatusBadge isOpen={res.isOpen} />
+                    <RestaurantStatusBadge isOpen={res.isOpen} />
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
@@ -271,7 +208,7 @@ export default function AdminRestaurantsPage() {
                           className={i < Math.floor(res.ratingAverage) ? "text-amber-400" : "text-slate-200"} 
                         />
                       ))}
-                      <span className="ml-2 font-mono text-sm font-black text-[#1c1917]">{res.ratingAverage.toFixed(1)}</span>
+                      <span className="ml-2 font-mono text-sm font-black text-stone-900">{res.ratingAverage.toFixed(1)}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-300">
                       <Calendar size={14} weight="bold" />
@@ -282,10 +219,10 @@ export default function AdminRestaurantsPage() {
 
                 {/* Actions */}
                 <div className="flex w-full items-center justify-between border-t border-slate-50 pt-4 md:w-auto md:flex-row md:border-t-0 md:pt-0">
-                  <button className="flex items-center gap-2 rounded-2xl bg-slate-50 px-5 py-3 text-xs font-black text-[#1c1917] transition-all hover:bg-orange-500 hover:text-white active:scale-95">
+                  <button className="flex items-center gap-2 rounded-2xl bg-slate-50 px-5 py-3 text-xs font-black text-stone-900 transition-all hover:bg-orange-500 hover:text-white active:scale-95">
                     Chi tiết
                   </button>
-                  <button className="grid size-10 place-items-center rounded-2xl text-slate-300 transition-all hover:bg-slate-50 hover:text-[#1c1917] md:ml-2">
+                  <button className="grid size-10 place-items-center rounded-2xl text-slate-300 transition-all hover:bg-slate-50 hover:text-stone-900 md:ml-2">
                     <DotsThreeVertical size={24} weight="bold" />
                   </button>
                 </div>
