@@ -26,6 +26,10 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "www.lalamove.com",
+      },
+      {
+        protocol: "https",
+        hostname: "images.pexels.com",
       }
     ],
   },

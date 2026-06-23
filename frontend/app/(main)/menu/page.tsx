@@ -20,6 +20,7 @@ import { getDishes, DishResponse } from "@/lib/dish";
 import { getAllCategories } from "@/lib/category";
 import { useCart } from "@/contexts/CartContext";
 import { ApiError } from "@/lib/api";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 const DISH_FALLBACK_IMAGE =
   "https://picsum.photos/seed/hungerdash-dish/500/500";
@@ -74,100 +75,45 @@ const itemVariants: Variants = {
 };
 
 export default function MenuPage() {
-  const [dishes, setDishes] = useState<DishResponse[]>([]);
-  const [categoryNames, setCategoryNames] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategoryName, setActiveCategoryName] = useState<string | "all">(
-    () => {
-      if (typeof window === "undefined") {
-        return "all";
-      }
-      return (
-        new URLSearchParams(window.location.search).get("category") ?? "all"
-      );
-    },
+    "all",
   );
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-
   const debouncedSearch = useDebouncedValue(searchQuery);
 
   const { items, addToCart, removeFromCart } = useCart();
 
-  useEffect(() => {
-    let isCurrentRequest = true;
 
-    async function loadCategories() {
-      try {
-        const categoryData = await getAllCategories();
-        if (isCurrentRequest) {
-          setCategoryNames(categoryData.map((category) => category.name));
-        }
-      } catch {
-        if (isCurrentRequest) {
-          setCategoryNames([]);
-        }
-      }
-    }
-
-    loadCategories();
-
-    return () => {
-      isCurrentRequest = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let isCurrentRequest = true;
-
-    async function loadDishes() {
-      setIsLoading(true);
-      setErrorMessage("");
-      try {
-        const result = await getDishes({
-          search: debouncedSearch.trim() || undefined,
-          categoryName:
-            activeCategoryName === "all" ? undefined : activeCategoryName,
-          isAvailable: true,
-          sortBy: "createdAt",
-          sortOrder: "DESC",
-          page,
-          limit: 12,
-        });
-
-        if (!isCurrentRequest) return;
-
-        setDishes(result.data);
-        setTotal(result.meta.total);
-        setTotalPages(Math.max(result.meta.totalPages, 1));
-      } catch (error) {
-        if (isCurrentRequest) {
-          setDishes([]);
-          setTotal(0);
-          setTotalPages(1);
-          setErrorMessage(
-            error instanceof ApiError
-              ? error.message
-              : "Không thể tải thực đơn.",
-          );
-        }
-      } finally {
-        if (isCurrentRequest) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadDishes();
-
-    return () => {
-      isCurrentRequest = false;
-    };
-  }, [activeCategoryName, debouncedSearch, page]);
-
+  // reuse cache from home page
+ const {data: categoryNames =[]}= useQuery({
+  queryKey: ["categories"],
+  queryFn: () => getAllCategories(),
+  staleTime:10*60*1000,
+  select: (data) => data.map((c) => c.name),  
+})
+   const {
+    data: dishesResult,
+    isLoading,
+    isPlaceholderData,  
+    error,
+  } = useQuery({
+    queryKey: ["dishes", { search: debouncedSearch, category: activeCategoryName, page }],
+    queryFn: () => getDishes({
+      search: debouncedSearch.trim() || undefined,
+      categoryName: activeCategoryName === "all" ? undefined : activeCategoryName,
+      isAvailable: true,
+      sortBy: "createdAt",
+      sortOrder: "DESC",
+      page,
+      limit: 12,
+    }),
+    placeholderData: keepPreviousData,             
+  });
+  const dishes = dishesResult?.data ?? [];
+  const total = dishesResult?.meta.total ?? 0;
+  const totalPages = Math.max(dishesResult?.meta.totalPages ?? 1, 1);
+  const errorMessage = error instanceof Error ? error.message : "";
   function resetToFirstPage(action: () => void) {
     setPage(1);
     action();

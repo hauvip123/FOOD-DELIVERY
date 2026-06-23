@@ -37,7 +37,7 @@ export default function AdminLayout({ children }: Readonly<{ children: React.Rea
                   <div className="absolute inset-0 rounded-2xl bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
                 <div>
-                  <p className="text-xl font-black tracking-tight text-[#1c1917]">HungerDash</p>
+                  <p className="text-xl font-black tracking-tight text-stone-900">HungerDash</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Admin Console</p>
                 </div>
               </Link>
@@ -86,7 +86,7 @@ export default function AdminLayout({ children }: Readonly<{ children: React.Rea
                     <ShieldCheck size={20} weight="bold" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black text-[#1c1917]">{user?.username ?? "Admin"}</p>
+                    <p className="truncate text-sm font-black text-stone-900">{user?.username ?? "Admin"}</p>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quản trị hệ thống</p>
                   </div>
                 </div>
@@ -117,7 +117,7 @@ export default function AdminLayout({ children }: Readonly<{ children: React.Rea
                 HD
               </div>
               <div>
-                <p className="text-sm font-black tracking-tight text-[#1c1917]">HungerDash</p>
+                <p className="text-sm font-black tracking-tight text-stone-900">HungerDash</p>
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Admin Console</p>
               </div>
             </Link>
