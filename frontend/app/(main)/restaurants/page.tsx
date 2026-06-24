@@ -18,7 +18,6 @@ import {
   Truck,
   X,
 } from "@phosphor-icons/react";
-import { ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { FavoriteRestaurantButton } from "@/components/restaurants/FavoriteRestaurantButton";
 import {
@@ -26,6 +25,8 @@ import {
   getRestaurants,
   RestaurantResponse,
 } from "@/lib/restaurant";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+
 
 type SortValue = "createdAt-DESC" | "ratingAverage-DESC" | "name-ASC";
 type OpenFilter = "all" | "open" | "closed";
@@ -87,10 +88,7 @@ function getSortParts(sort: SortValue) {
 
 export default function RestaurantsPage() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
-  const [favoriteRestaurantIds, setFavoriteRestaurantIds] = useState<number[]>(
-    [],
-  );
+
   const [searchQuery, setSearchQuery] = useState("");
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
@@ -99,10 +97,7 @@ export default function RestaurantsPage() {
   const [minRating, setMinRating] = useState("");
   const [sort, setSort] = useState<SortValue>("createdAt-DESC");
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+
 
   const debouncedSearch = useDebouncedValue(searchQuery);
 
@@ -116,101 +111,39 @@ export default function RestaurantsPage() {
       minRating,
     ].filter(Boolean).length;
   }, [debouncedSearch, city, address, cuisine, openFilter, minRating]);
-
-  useEffect(() => {
-    let isCurrentRequest = true;
     const { sortBy, sortOrder } = getSortParts(sort);
+const {
+    data: result,
+    isLoading,
+    isPlaceholderData,
+    error,
+  } = useQuery({
+    queryKey: ["restaurants", { search: debouncedSearch, city, address, cuisine, openFilter, minRating, sort, page }],
+    queryFn: () => getRestaurants({
+      search: debouncedSearch.trim() || undefined,
+      city: city.trim() || undefined,
+      address: address.trim() || undefined,
+      cuisine: cuisine.trim() || undefined,
+      isOpen: openFilter === "all" ? undefined : openFilter === "open",
+      minRating: minRating ? Number(minRating) : undefined,
+      sortBy,
+      sortOrder,
+      page,
+      limit: 9,
+    }),
+    placeholderData: keepPreviousData,             
+  });
 
-    async function loadRestaurants() {
-      setIsLoading(true);
-      setErrorMessage("");
-
-      try {
-        const result = await getRestaurants({
-          search: debouncedSearch.trim() || undefined,
-          city: city.trim() || undefined,
-          address: address.trim() || undefined,
-          cuisine: cuisine.trim() || undefined,
-          isOpen: openFilter === "all" ? undefined : openFilter === "open",
-          minRating: minRating ? Number(minRating) : undefined,
-          sortBy,
-          sortOrder,
-          page,
-          limit: 9,
-        });
-
-        if (!isCurrentRequest) {
-          return;
-        }
-
-        setRestaurants(result.data);
-        setTotal(result.meta.total);
-        setTotalPages(Math.max(result.meta.totalPages, 1));
-      } catch (error) {
-        if (!isCurrentRequest) {
-          return;
-        }
-        setRestaurants([]);
-        setTotal(0);
-        setTotalPages(1);
-        setErrorMessage(
-          error instanceof ApiError
-            ? error.message
-            : "Không thể tải danh sách nhà hàng.",
-        );
-      } finally {
-        if (isCurrentRequest) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadRestaurants();
-
-    return () => {
-      isCurrentRequest = false;
-    };
-  }, [
-    debouncedSearch,
-    city,
-    address,
-    cuisine,
-    openFilter,
-    minRating,
-    sort,
-    page,
-  ]);
-
-  useEffect(() => {
-    if (isAuthLoading) {
-      return;
-    }
-
-    if (!isAuthenticated) {
-      return;
-    }
-
-    let isCurrentRequest = true;
-
-    async function loadFavoriteIds() {
-      try {
-        const ids = await getFavoriteRestaurantIds();
-        if (isCurrentRequest) {
-          setFavoriteRestaurantIds(ids);
-        }
-      } catch {
-        if (isCurrentRequest) {
-          setFavoriteRestaurantIds([]);
-        }
-      }
-    }
-
-    loadFavoriteIds();
-
-    return () => {
-      isCurrentRequest = false;
-    };
-  }, [isAuthLoading, isAuthenticated]);
+const {data: favoriteRestaurantIds= []}= useQuery({
+  queryKey: ["favoriteRestaurantIds"],
+  queryFn: getFavoriteRestaurantIds,
+  enabled: isAuthenticated && !isAuthLoading,
+  staleTime:2*60*1000,
+  
+})
+const restaurants = result?.data ?? [];
+  const total = result?.meta.total ?? 0;
+  const totalPages = Math.max(result?.meta.totalPages ?? 1, 1);
 
   function resetToFirstPage(action: () => void) {
     setPage(1);
@@ -228,16 +161,21 @@ export default function RestaurantsPage() {
     setPage(1);
   }
 
-  function handleFavoriteChange(restaurantId: number, isFavorite: boolean) {
-    setFavoriteRestaurantIds((currentIds) => {
+  const queryClient = useQueryClient();
+
+  const handleFavoriteChange = (restaurantId: number, isFavorite: boolean) => {
+    queryClient.setQueryData<number[]>(["favoriteRestaurantIds"], (oldIds) => {
+      if (!oldIds) return isFavorite ? [restaurantId] : [];
       if (isFavorite) {
-        return currentIds.includes(restaurantId)
-          ? currentIds
-          : [...currentIds, restaurantId];
+        return oldIds.includes(restaurantId) ? oldIds : [...oldIds, restaurantId];
+      } else {
+        return oldIds.filter((id) => id !== restaurantId);
       }
-      return currentIds.filter((id) => id !== restaurantId);
     });
-  }
+
+  
+    queryClient.invalidateQueries({ queryKey: ["favoriteRestaurants"] });
+  };
 
   const filterSidebar = (
     <div className="rounded-[2rem] border border-[#23140c]/5 bg-white p-4 shadow-[0_20px_45px_-32px_rgba(35,20,12,0.45)] lg:sticky lg:top-28">
@@ -502,9 +440,9 @@ export default function RestaurantsPage() {
               </p>
             </div>
 
-            {errorMessage && (
+            {error && (
               <div className="mb-8 rounded-3xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
-                {errorMessage}
+                {error.message}
               </div>
             )}
 

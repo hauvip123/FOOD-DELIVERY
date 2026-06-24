@@ -19,7 +19,6 @@ import {
 import { getDishes, DishResponse } from "@/lib/dish";
 import { getAllCategories } from "@/lib/category";
 import { useCart } from "@/contexts/CartContext";
-import { ApiError } from "@/lib/api";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 const DISH_FALLBACK_IMAGE =

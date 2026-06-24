@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Buildings, Clock, Heart, MapPin, Star, Truck } from "@phosphor-icons/react";
-import { ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { FavoriteRestaurantButton } from "@/components/restaurants/FavoriteRestaurantButton";
 import { getFavoriteRestaurants, RestaurantResponse } from "@/lib/restaurant";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const FALLBACK_IMAGE = "https://picsum.photos/seed/hungerdash-favorite/900/650";
 
@@ -33,53 +32,29 @@ function formatDeliveryFee(value?: number) {
 
 export default function FavoriteRestaurantsPage() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (isAuthLoading) {
-      return;
-    }
+  const { data: restaurants = [], isLoading, error } = useQuery({
+    queryKey: ["favoriteRestaurants"],
+    queryFn: getFavoriteRestaurants,
+    enabled: isAuthenticated && !isAuthLoading,
+  });
 
-    if (!isAuthenticated) {
-      return;
-    }
+  const errorMessage = error instanceof Error ? error.message : "";
 
-    let isCurrentRequest = true;
-
-    async function loadFavorites() {
-      setIsLoading(true);
-      setErrorMessage("");
-      try {
-        const data = await getFavoriteRestaurants();
-        if (isCurrentRequest) {
-          setRestaurants(data);
-        }
-      } catch (error) {
-        if (isCurrentRequest) {
-          setRestaurants([]);
-          setErrorMessage(error instanceof ApiError ? error.message : "Không thể tải nhà hàng yêu thích.");
-        }
-      } finally {
-        if (isCurrentRequest) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadFavorites();
-
-    return () => {
-      isCurrentRequest = false;
-    };
-  }, [isAuthLoading, isAuthenticated]);
-
-  function handleFavoriteChange(restaurantId: number, isFavorite: boolean) {
+  const handleFavoriteChange = (restaurantId: number, isFavorite: boolean) => {
     if (!isFavorite) {
-      setRestaurants((currentRestaurants) => currentRestaurants.filter((restaurant) => restaurant.id !== restaurantId));
+      queryClient.setQueryData<RestaurantResponse[]>(["favoriteRestaurants"], (oldData) => {
+        if (!oldData) return [];
+        return oldData.filter((restaurant) => restaurant.id !== restaurantId);
+      });
+
+      queryClient.setQueryData<number[]>(["favoriteRestaurantIds"], (oldIds) => {
+        if (!oldIds) return [];
+        return oldIds.filter((id) => id !== restaurantId);
+      });
     }
-  }
+  };
 
   if (!isAuthLoading && !isAuthenticated) {
     return (
