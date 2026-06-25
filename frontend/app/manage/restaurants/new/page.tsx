@@ -16,18 +16,17 @@ import {
   CheckCircle,
   WarningCircle,
   Plus,
-  Truck
+  Truck,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { createRestaurant, RestaurantPayload } from "@/lib/restaurant";
 import { ApiError } from "@/lib/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function CreateRestaurantPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [success, setSuccess] = useState(false);
-
   const [formData, setFormData] = useState<RestaurantPayload>({
     name: "",
     address: "",
@@ -38,10 +37,14 @@ export default function CreateRestaurantPage() {
     openTime: "08:00",
     closeTime: "22:00",
     deliveryFee: 15000,
-    imgage: ""
+    imgage: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -49,27 +52,23 @@ export default function CreateRestaurantPage() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      await createRestaurant(formData);
+  const handleSubmit = useMutation({
+    mutationFn: () => createRestaurant(formData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myRestaurants"] });
+      queryClient.invalidateQueries({ queryKey: ["manage", "overview"] });
       setSuccess(true);
       setTimeout(() => {
         router.push("/manage/restaurants");
       }, 2000);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Đã xảy ra lỗi không xác định.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+  });
+  const isLoading = handleSubmit.isPending;
+  const error = handleSubmit.error
+    ? handleSubmit.error instanceof ApiError
+      ? handleSubmit.error.message
+      : "Đã xảy ra lỗi không xác định."
+    : null;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -96,13 +95,22 @@ export default function CreateRestaurantPage() {
             <div className="mb-6 rounded-full bg-emerald-50 p-6 text-emerald-500">
               <CheckCircle size={80} weight="fill" />
             </div>
-            <h2 className="text-3xl font-black text-[#23140c]">Tạo nhà hàng thành công!</h2>
+            <h2 className="text-3xl font-black text-[#23140c]">
+              Tạo nhà hàng thành công!
+            </h2>
             <p className="mt-4 text-lg font-medium text-[#23140c]/40">
-              Nhà hàng của bạn đã được đăng ký. Đang chuyển hướng về trang danh sách...
+              Nhà hàng của bạn đã được đăng ký. Đang chuyển hướng về trang danh
+              sách...
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-10">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit.mutate();
+            }}
+            className="space-y-10"
+          >
             {error && (
               <div className="flex items-center gap-3 rounded-2xl bg-red-50 p-6 text-red-600 ring-1 ring-red-100">
                 <WarningCircle size={24} weight="fill" />
@@ -113,7 +121,11 @@ export default function CreateRestaurantPage() {
             <div className="grid gap-8 md:grid-cols-2">
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
-                  <Storefront size={20} weight="bold" className="text-orange-500" />
+                  <Storefront
+                    size={20}
+                    weight="bold"
+                    className="text-orange-500"
+                  />
                   Tên nhà hàng
                 </label>
                 <input
@@ -129,7 +141,11 @@ export default function CreateRestaurantPage() {
 
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
-                  <CookingPot size={20} weight="bold" className="text-orange-500" />
+                  <CookingPot
+                    size={20}
+                    weight="bold"
+                    className="text-orange-500"
+                  />
                   Loại hình ẩm thực
                 </label>
                 <input
@@ -161,7 +177,11 @@ export default function CreateRestaurantPage() {
 
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
-                  <Buildings size={20} weight="bold" className="text-orange-500" />
+                  <Buildings
+                    size={20}
+                    weight="bold"
+                    className="text-orange-500"
+                  />
                   Thành phố
                 </label>
                 <input
@@ -241,7 +261,11 @@ export default function CreateRestaurantPage() {
 
               <div className="space-y-3 md:col-span-2">
                 <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
-                  <ImageIcon size={20} weight="bold" className="text-orange-500" />
+                  <ImageIcon
+                    size={20}
+                    weight="bold"
+                    className="text-orange-500"
+                  />
                   Link ảnh nhà hàng
                 </label>
                 <input
@@ -280,7 +304,11 @@ export default function CreateRestaurantPage() {
               ) : (
                 <>
                   Tạo nhà hàng ngay
-                  <Plus size={20} weight="bold" className="transition-transform group-hover:rotate-90" />
+                  <Plus
+                    size={20}
+                    weight="bold"
+                    className="transition-transform group-hover:rotate-90"
+                  />
                 </>
               )}
             </button>

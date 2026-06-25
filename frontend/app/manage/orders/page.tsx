@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { CheckCircle, Clock, CookingPot, Eye, Receipt, Storefront, Truck } from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
 import { getManagedOrders, OrderResponse, updateOrderStatus } from "@/lib/order";
 import { getMyRestaurants, RestaurantResponse } from "@/lib/restaurant";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 
 const statusConfig: Record<string, { label: string; tone: string; action?: { label: string; next: string } }> = {
   pending: { label: "Chờ xác nhận", tone: "bg-amber-50 text-amber-700 ring-amber-100", action: { label: "Xác nhận đơn", next: "confirmed" } },
@@ -44,12 +45,61 @@ function formatDate(value: string) {
 }
 
 export default function ManageOrdersPage() {
-  const [orders, setOrders] = useState<OrderResponse[]>([]);
-  const [restaurantsById, setRestaurantsById] = useState<Record<number, RestaurantResponse>>({});
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("pending");
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  const ordersQuery = useQuery({
+    queryKey: ["manage", "orders"],
+    queryFn: async () => {
+      const [orderData, restaurantData] = await Promise.all([
+        getManagedOrders(),
+        getMyRestaurants(),
+      ]);
+      const restaurantsById = Object.fromEntries(
+        restaurantData.map((restaurant) => [restaurant.id, restaurant])
+      );
+      return { orders: orderData, restaurantsById };
+    },
+    refetchOnWindowFocus: true,
+    refetchInterval: 30 * 1000,
+  });
+
+  const orders = ordersQuery.data?.orders ?? [];
+  const restaurantsById = ordersQuery.data?.restaurantsById ?? {};
+  const isLoading = ordersQuery.isLoading;
+
+  const updateMutation = useMutation({
+    mutationFn: ({ orderId, nextStatus }: { orderId: number; nextStatus: string }) =>
+      updateOrderStatus(orderId, nextStatus),
+    onMutate: async ({ orderId, nextStatus }) => {
+      await queryClient.cancelQueries({ queryKey: ["manage", "orders"] });
+      const previousOrdersData = queryClient.getQueryData<{
+        orders: OrderResponse[];
+        restaurantsById: Record<number, RestaurantResponse>;
+      }>(["manage", "orders"]);
+
+      if (previousOrdersData) {
+        queryClient.setQueryData(["manage", "orders"], {
+          ...previousOrdersData,
+          orders: previousOrdersData.orders.map((order) =>
+            order.id === orderId
+              ? { ...order, orderStatus: nextStatus }
+              : order
+          ),
+        });
+      }
+      return { previousOrdersData };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousOrdersData) {
+        queryClient.setQueryData(["manage", "orders"], context.previousOrdersData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["manage", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["manage", "overview"] });
+    },
+  });
 
   const filteredOrders = useMemo(() => {
     if (activeTab === "all") return orders;
@@ -65,51 +115,11 @@ export default function ManageOrdersPage() {
       .reduce((sum, order) => sum + order.totalAmount, 0);
   }, [orders]);
 
-  useEffect(() => {
-    let isCurrentRequest = true;
-
-    async function loadData() {
-      setIsLoading(true);
-      setErrorMessage("");
-      try {
-        const [orderData, restaurantData] = await Promise.all([
-          getManagedOrders(),
-          getMyRestaurants(),
-        ]);
-        if (isCurrentRequest) {
-          setOrders(orderData);
-          setRestaurantsById(Object.fromEntries(restaurantData.map((restaurant) => [restaurant.id, restaurant])));
-        }
-      } catch (error) {
-        if (isCurrentRequest) {
-          setErrorMessage(error instanceof ApiError ? error.message : "Không thể tải đơn hàng.");
-        }
-      } finally {
-        if (isCurrentRequest) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadData();
-
-    return () => {
-      isCurrentRequest = false;
-    };
-  }, []);
-
-  async function handleUpdateStatus(order: OrderResponse, nextStatus: string) {
-    setUpdatingId(order.id);
-    setErrorMessage("");
-    try {
-      const updatedOrder = await updateOrderStatus(order.id, nextStatus);
-      setOrders((currentOrders) => currentOrders.map((item) => item.id === order.id ? updatedOrder : item));
-    } catch (error) {
-      setErrorMessage(error instanceof ApiError ? error.message : "Không thể cập nhật trạng thái đơn.");
-    } finally {
-      setUpdatingId(null);
-    }
-  }
+  const errorMessage = ordersQuery.error
+    ? (ordersQuery.error instanceof ApiError ? ordersQuery.error.message : "Không thể tải đơn hàng.")
+    : updateMutation.error
+    ? (updateMutation.error instanceof ApiError ? updateMutation.error.message : "Không thể cập nhật trạng thái đơn.")
+    : "";
 
   return (
     <div className="space-y-8">
@@ -122,7 +132,7 @@ export default function ManageOrdersPage() {
       </header>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-[2rem] bg-white p-6 ring-1 ring-black/5">
+        <div className="rounded-[2.5rem] bg-white p-6 ring-1 ring-black/5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-black text-[#23140c]">{pendingCount}</p>
@@ -131,7 +141,7 @@ export default function ManageOrdersPage() {
             <Clock size={32} weight="bold" className="text-amber-500" />
           </div>
         </div>
-        <div className="rounded-[2rem] bg-white p-6 ring-1 ring-black/5">
+        <div className="rounded-[2.5rem] bg-white p-6 ring-1 ring-black/5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-black text-[#23140c]">{activeCount}</p>
@@ -140,7 +150,7 @@ export default function ManageOrdersPage() {
             <CookingPot size={32} weight="bold" className="text-orange-500" />
           </div>
         </div>
-        <div className="rounded-[2rem] bg-[#23140c] p-6 text-white ring-1 ring-black/5">
+        <div className="rounded-[2.5rem] bg-[#23140c] p-6 text-white ring-1 ring-black/5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-black text-orange-400">{formatMoney(todayRevenue)}</p>
@@ -172,11 +182,11 @@ export default function ManageOrdersPage() {
       {isLoading ? (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="h-44 animate-pulse rounded-[2rem] bg-white ring-1 ring-black/5" />
+            <div key={index} className="h-44 animate-pulse rounded-[2.5rem] bg-white ring-1 ring-black/5" />
           ))}
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="rounded-[2rem] border border-dashed border-[#23140c]/10 bg-white px-6 py-20 text-center">
+        <div className="rounded-[2.5rem] border border-dashed border-[#23140c]/10 bg-white px-6 py-20 text-center">
           <Receipt size={48} weight="bold" className="mx-auto text-orange-200" />
           <h2 className="mt-5 text-2xl font-black text-[#23140c]">Không có đơn hàng</h2>
           <p className="mt-3 text-sm font-bold text-[#704322]/55">Chưa có đơn nào trong trạng thái đang chọn.</p>
@@ -186,8 +196,9 @@ export default function ManageOrdersPage() {
           {filteredOrders.map((order) => {
             const status = statusConfig[order.orderStatus] ?? statusConfig.pending;
             const restaurant = restaurantsById[order.restaurantId];
+            const isUpdating = updateMutation.isPending && updateMutation.variables?.orderId === order.id;
             return (
-              <article key={order.id} className="rounded-[2rem] bg-white p-5 shadow-[0_18px_45px_-28px_rgba(35,20,12,0.35)] ring-1 ring-black/5 sm:p-7">
+              <article key={order.id} className="rounded-[2.5rem] bg-white p-5 shadow-[0_18px_45px_-28px_rgba(35,20,12,0.35)] ring-1 ring-black/5 sm:p-7">
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-3">
@@ -225,12 +236,12 @@ export default function ManageOrdersPage() {
                     </Link>
                     {status.action ? (
                       <button
-                        onClick={() => handleUpdateStatus(order, status.action!.next)}
-                        disabled={updatingId === order.id}
+                        onClick={() => updateMutation.mutate({ orderId: order.id, nextStatus: status.action!.next })}
+                        disabled={isUpdating}
                         className="inline-flex h-11 items-center justify-center gap-2 rounded-[1rem] bg-orange-500 px-5 text-sm font-black text-white transition-all hover:bg-orange-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
                       >
                         {status.action.next === "delivering" ? <Truck size={18} weight="bold" /> : <CheckCircle size={18} weight="bold" />}
-                        {updatingId === order.id ? "Đang cập nhật..." : status.action.label}
+                        {isUpdating ? "Đang cập nhật..." : status.action.label}
                       </button>
                     ) : order.orderStatus === "delivering" ? (
                       <span className="inline-flex h-11 items-center justify-center rounded-[1rem] bg-sky-50 px-5 text-sm font-black text-sky-700 ring-1 ring-sky-100">

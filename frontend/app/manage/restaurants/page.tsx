@@ -10,11 +10,13 @@ import {
   MapPin,
   PencilSimple,
   Star,
-  ArrowRight
+  ArrowRight,
 } from "@phosphor-icons/react";
 import { getMyRestaurants, RestaurantResponse } from "@/lib/restaurant";
+import { useQuery } from "@tanstack/react-query";
 
-const FALLBACK_RESTAURANT_IMAGE = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop";
+const FALLBACK_RESTAURANT_IMAGE =
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop";
 
 function getRestaurantImageSrc(src?: string) {
   const trimmedSrc = src?.trim();
@@ -27,29 +29,23 @@ function getRestaurantImageSrc(src?: string) {
 }
 
 export default function MyRestaurantsPage() {
-  const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchRestaurants() {
-      try {
-        const data = await getMyRestaurants();
-        setRestaurants(data);
-      } catch (error) {
-        console.error("Failed to fetch restaurants:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchRestaurants();
-  }, []);
-
+  const restaurantsQuery = useQuery({
+    queryKey: ["myRestaurants"],
+    queryFn: () => getMyRestaurants(),
+    staleTime: 3 * 60 * 1000,
+  });
+  const restaurants = restaurantsQuery.data ?? [];
+  const isLoading = restaurantsQuery.isLoading;
   return (
     <div className="space-y-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter text-[#23140c]">Nhà hàng của tôi</h1>
-          <p className="mt-2 text-lg font-medium text-[#23140c]/50">Quản lý và cập nhật thông tin nhà hàng của bạn.</p>
+          <h1 className="text-4xl font-black tracking-tighter text-[#23140c]">
+            Nhà hàng của tôi
+          </h1>
+          <p className="mt-2 text-lg font-medium text-[#23140c]/50">
+            Quản lý và cập nhật thông tin nhà hàng của bạn.
+          </p>
         </div>
         <Link
           href="/manage/restaurants/new"
@@ -63,7 +59,10 @@ export default function MyRestaurantsPage() {
       {isLoading ? (
         <div className="grid gap-6 md:grid-cols-2">
           {[1, 2].map((i) => (
-            <div key={i} className="h-64 animate-pulse rounded-[2.5rem] bg-white ring-1 ring-black/5"></div>
+            <div
+              key={i}
+              className="h-64 animate-pulse rounded-[2.5rem] bg-white ring-1 ring-black/5"
+            ></div>
           ))}
         </div>
       ) : restaurants.length === 0 ? (
@@ -71,8 +70,12 @@ export default function MyRestaurantsPage() {
           <div className="mb-6 rounded-full bg-orange-50 p-8 text-orange-200">
             <Storefront size={64} weight="bold" />
           </div>
-          <h2 className="text-2xl font-black text-[#23140c]">Bạn chưa có nhà hàng nào</h2>
-          <p className="mt-3 text-lg font-medium text-[#23140c]/40">Bắt đầu kinh doanh bằng cách tạo nhà hàng đầu tiên.</p>
+          <h2 className="text-2xl font-black text-[#23140c]">
+            Bạn chưa có nhà hàng nào
+          </h2>
+          <p className="mt-3 text-lg font-medium text-[#23140c]/40">
+            Bắt đầu kinh doanh bằng cách tạo nhà hàng đầu tiên.
+          </p>
           <Link
             href="/manage/restaurants/new"
             className="mt-8 rounded-2xl bg-[#23140c] px-10 py-4 font-black text-white hover:bg-orange-500 transition-colors"
@@ -103,8 +106,12 @@ export default function MyRestaurantsPage() {
                 <div className="flex flex-1 flex-col justify-center">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="text-2xl font-black text-[#23140c]">{res.name}</h3>
-                      <p className="text-sm font-bold text-orange-500">{res.cuisine}</p>
+                      <h3 className="text-2xl font-black text-[#23140c]">
+                        {res.name}
+                      </h3>
+                      <p className="text-sm font-bold text-orange-500">
+                        {res.cuisine}
+                      </p>
                     </div>
                     <div className="flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1 text-sm font-black text-orange-500">
                       <Star size={16} weight="fill" />
@@ -113,7 +120,9 @@ export default function MyRestaurantsPage() {
                   </div>
                   <div className="mt-4 flex items-center gap-2 text-sm font-medium text-[#23140c]/40">
                     <MapPin size={18} weight="bold" />
-                    <span className="truncate">{res.address}, {res.city}</span>
+                    <span className="truncate">
+                      {res.address}, {res.city}
+                    </span>
                   </div>
                 </div>
               </div>

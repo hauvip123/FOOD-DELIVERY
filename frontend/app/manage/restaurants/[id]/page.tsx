@@ -14,7 +14,7 @@ import {
   Tag,
   CurrencyCircleDollar,
   Note,
-  Image as ImageIcon
+  Image as ImageIcon,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { getRestaurantById, RestaurantResponse } from "@/lib/restaurant";
@@ -23,18 +23,21 @@ import {
   createCategory,
   deleteCategory,
   updateCategory,
-  CategoryResponse
+  CategoryResponse,
 } from "@/lib/category";
 import {
   getDishesByRestaurantId,
   createDish,
   deleteDish,
   updateDish,
-  DishResponse
+  DishResponse,
 } from "@/lib/dish";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-const FALLBACK_RESTAURANT_IMAGE = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop";
-const FALLBACK_DISH_IMAGE = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000&auto=format&fit=crop";
+const FALLBACK_RESTAURANT_IMAGE =
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop";
+const FALLBACK_DISH_IMAGE =
+  "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000&auto=format&fit=crop";
 
 function getImageSrc(src: string | undefined, fallback: string) {
   const trimmedSrc = src?.trim();
@@ -50,18 +53,18 @@ interface RestaurantDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function RestaurantDetailPage({ params }: RestaurantDetailPageProps) {
+export default function RestaurantDetailPage({
+  params,
+}: RestaurantDetailPageProps) {
   const { id } = use(params);
   const restaurantId = Number(id);
-  const [restaurant, setRestaurant] = useState<RestaurantResponse | null>(null);
-  const [categories, setCategories] = useState<CategoryResponse[]>([]);
-  const [dishes, setDishes] = useState<DishResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   // Modals state
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isDishModalOpen, setIsDishModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<CategoryResponse | null>(null);
+  const [editingCategory, setEditingCategory] =
+    useState<CategoryResponse | null>(null);
   const [editingDish, setEditingDish] = useState<DishResponse | null>(null);
 
   // Form states
@@ -71,93 +74,107 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
     price: 0,
     categoryId: 0,
     description: "",
-    image: ""
+    image: "",
   });
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [resData, catsData, dishesData] = await Promise.all([
-        getRestaurantById(restaurantId),
-        getAllCategories(),
-        getDishesByRestaurantId(restaurantId)
-      ]);
-      setRestaurant(resData);
-      setCategories(catsData.filter((category) => category.restaurantId === restaurantId));
-      setDishes(dishesData);
-    } catch (err) {
-      console.error("Failed to fetch restaurant detail:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [restaurantId]);
+  const restaurantDetailQuery = useQuery({
+    queryKey: ["restaurant", restaurantId],
+    queryFn: () => getRestaurantById(restaurantId),
+    enabled: !Number.isNaN(restaurantId),
+  });
+  const restaurant = restaurantDetailQuery.data ?? null;
 
-  useEffect(() => {
-    void Promise.resolve().then(fetchData);
-  }, [fetchData]);
+  const categoriesQuery = useQuery({
+    queryKey: ["categories", "byRestaurant", restaurantId],
+    queryFn: () => getAllCategories(),
+    enabled: !Number.isNaN(restaurantId),
+  });
+  const categories = categoriesQuery.data ?? [];
 
-  const handleCreateCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editingCategory) {
-        await updateCategory(editingCategory.id, categoryName);
-      } else {
-        await createCategory({ restaurantId, name: categoryName });
-      }
+  const dishesQuery = useQuery({
+    queryKey: ["dishes", "byRestaurant", restaurantId],
+    queryFn: () => getDishesByRestaurantId(restaurantId),
+    enabled: !Number.isNaN(restaurantId),
+  });
+  const dishes = dishesQuery.data ?? [];
+  const isLoading =
+    restaurantDetailQuery.isLoading ||
+    categoriesQuery.isLoading ||
+    dishesQuery.isLoading;
+
+  const handleCreateCategory = useMutation({
+    mutationFn: () =>
+      editingCategory
+        ? updateCategory(editingCategory.id, categoryName)
+        : createCategory({
+            restaurantId,
+            name: categoryName,
+          }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["categories", "byRestaurant", restaurantId],
+      });
       setIsCategoryModalOpen(false);
       setCategoryName("");
-      setEditingCategory(null);
-      fetchData();
-    } catch {
-      alert("Lỗi khi xử lý danh mục.");
-    }
-  };
+    },
+  });
 
-  const handleDeleteCategory = async (catId: number) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa danh mục này? Tất cả món ăn thuộc danh mục sẽ bị ảnh hưởng.")) return;
-    try {
-      await deleteCategory(catId);
-      fetchData();
-    } catch {
-      alert("Lỗi khi xóa danh mục.");
-    }
-  };
+  const handleDeleteCategory = useMutation({
+    mutationFn: (catId: number) => deleteCategory(catId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["categories", "byRestaurant", restaurantId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["dishes", "byRestaurant", restaurantId],
+      });
+    },
+  });
 
-  const handleDishSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editingDish) {
-        await updateDish(editingDish.id, dishForm);
-      } else {
-        await createDish({ ...dishForm, restaurantId });
-      }
+  const handleDishSubmit = useMutation({
+    mutationFn: () =>
+      editingDish
+        ? updateDish(editingDish.id, dishForm)
+        : createDish({ ...dishForm, restaurantId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["dishes", "byRestaurant", restaurantId],
+      });
       setIsDishModalOpen(false);
-      setEditingDish(null);
-      setDishForm({ name: "", price: 0, categoryId: 0, description: "", image: "" });
-      fetchData();
-    } catch {
-      alert("Lỗi khi xử lý món ăn.");
-    }
-  };
+      setDishForm({
+        name: "",
+        price: 0,
+        categoryId: categories[0]?.id || 0,
+        description: "",
+        image: "",
+      });
+    },
+  });
 
-  const handleDeleteDish = async (dishId: number) => {
-    if (!confirm("Xóa món ăn này?")) return;
-    try {
-      await deleteDish(dishId);
-      fetchData();
-    } catch {
-      alert("Lỗi khi xóa món ăn.");
-    }
-  };
+  const handleDeleteDish = useMutation({
+    mutationFn: (dishId: number) => deleteDish(dishId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["dishes", "byRestaurant", restaurantId],
+      });
+    },
+    onError: () => {
+      alert("Không thể xóa món ăn");
+    },
+  });
 
-  const toggleDishAvailability = async (dish: DishResponse) => {
-    try {
-      await updateDish(dish.id, { isAvailable: !dish.isAvailable });
-      setDishes(dishes.map(d => d.id === dish.id ? { ...d, isAvailable: !d.isAvailable } : d));
-    } catch {
+  const toggleDishAvailability = useMutation({
+    mutationFn: (dish: DishResponse) =>
+      updateDish(dish.id, { isAvailable: !dish.isAvailable }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["dishes", "byRestaurant", restaurantId],
+      });
+    },
+    onError: () => {
       alert("Lỗi khi cập nhật trạng thái.");
-    }
-  };
+    },
+  });
 
   if (isLoading) {
     return (
@@ -183,18 +200,27 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute bottom-10 left-10 right-10 flex items-end justify-between">
           <div className="text-white">
-            <Link href="/manage/restaurants" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-orange-400 hover:text-white transition-colors">
+            <Link
+              href="/manage/restaurants"
+              className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-orange-400 hover:text-white transition-colors"
+            >
               <ArrowLeft size={18} weight="bold" />
               Quay lại danh sách
             </Link>
-            <h1 className="text-5xl font-black tracking-tighter">{restaurant.name}</h1>
+            <h1 className="text-5xl font-black tracking-tighter">
+              {restaurant.name}
+            </h1>
             <div className="mt-4 flex flex-wrap gap-6 text-sm font-bold text-white/80">
               <div className="flex items-center gap-2">
                 <MapPin size={20} weight="fill" className="text-orange-500" />
                 {restaurant.address}, {restaurant.city}
               </div>
               <div className="flex items-center gap-2">
-                <CookingPot size={20} weight="fill" className="text-orange-500" />
+                <CookingPot
+                  size={20}
+                  weight="fill"
+                  className="text-orange-500"
+                />
                 {restaurant.cuisine}
               </div>
               <div className="flex items-center gap-2">
@@ -220,7 +246,11 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-black text-[#23140c]">Danh mục</h2>
             <button
-              onClick={() => { setEditingCategory(null); setCategoryName(""); setIsCategoryModalOpen(true); }}
+              onClick={() => {
+                setEditingCategory(null);
+                setCategoryName("");
+                setIsCategoryModalOpen(true);
+              }}
               className="flex size-10 items-center justify-center rounded-xl bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition-colors"
             >
               <Plus size={20} weight="bold" />
@@ -229,7 +259,9 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
 
           <div className="space-y-3">
             {categories.length === 0 ? (
-              <p className="text-sm font-medium text-[#23140c]/40 italic">Chưa có danh mục nào.</p>
+              <p className="text-sm font-medium text-[#23140c]/40 italic">
+                Chưa có danh mục nào.
+              </p>
             ) : (
               categories.map((cat) => (
                 <div
@@ -239,13 +271,17 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                   <span className="font-bold text-[#23140c]">{cat.name}</span>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => { setEditingCategory(cat); setCategoryName(cat.name); setIsCategoryModalOpen(true); }}
+                      onClick={() => {
+                        setEditingCategory(cat);
+                        setCategoryName(cat.name);
+                        setIsCategoryModalOpen(true);
+                      }}
                       className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
                     >
                       <PencilSimple size={18} weight="bold" />
                     </button>
                     <button
-                      onClick={() => handleDeleteCategory(cat.id)}
+                      onClick={() => handleDeleteCategory.mutate(cat.id)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash size={18} weight="bold" />
@@ -260,12 +296,21 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
         {/* Dishes Content */}
         <div className="lg:col-span-3 space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-black text-[#23140c]">Thực đơn món ăn</h2>
+            <h2 className="text-3xl font-black text-[#23140c]">
+              Thực đơn món ăn
+            </h2>
             <button
               onClick={() => {
-                if (categories.length === 0) return alert("Vui lòng tạo ít nhất một danh mục trước.");
+                if (categories.length === 0)
+                  return alert("Vui lòng tạo ít nhất một danh mục trước.");
                 setEditingDish(null);
-                setDishForm({ name: "", price: 0, categoryId: categories[0].id, description: "", image: "" });
+                setDishForm({
+                  name: "",
+                  price: 0,
+                  categoryId: categories[0].id,
+                  description: "",
+                  image: "",
+                });
                 setIsDishModalOpen(true);
               }}
               className="flex items-center gap-2 rounded-2xl bg-[#23140c] px-6 py-4 text-sm font-black text-white shadow-lg hover:bg-orange-500 transition-all active:scale-95"
@@ -281,15 +326,19 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                 <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-orange-50 text-orange-200">
                   <CookingPot size={40} weight="bold" />
                 </div>
-                <h3 className="text-xl font-black text-[#23140c]">Chưa có món ăn nào</h3>
-                <p className="mt-2 text-[#23140c]/40">Bắt đầu xây dựng thực đơn của bạn ngay bây giờ.</p>
+                <h3 className="text-xl font-black text-[#23140c]">
+                  Chưa có món ăn nào
+                </h3>
+                <p className="mt-2 text-[#23140c]/40">
+                  Bắt đầu xây dựng thực đơn của bạn ngay bây giờ.
+                </p>
               </div>
             ) : (
               dishes.map((dish) => (
                 <motion.div
                   key={dish.id}
                   layout
-                  className={`flex gap-5 rounded-[2.5rem] bg-white p-5 shadow-sm ring-1 ring-black/5 transition-all hover:shadow-xl ${!dish.isAvailable ? 'opacity-60 grayscale' : ''}`}
+                  className={`flex gap-5 rounded-[2.5rem] bg-white p-5 shadow-sm ring-1 ring-black/5 transition-all hover:shadow-xl ${!dish.isAvailable ? "opacity-60 grayscale" : ""}`}
                 >
                   <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-[1.75rem]">
                     <Image
@@ -303,7 +352,9 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                   <div className="flex flex-1 flex-col justify-between py-1">
                     <div>
                       <div className="flex items-start justify-between">
-                        <h4 className="text-lg font-black text-[#23140c]">{dish.name}</h4>
+                        <h4 className="text-lg font-black text-[#23140c]">
+                          {dish.name}
+                        </h4>
                         <div className="flex gap-1">
                           <button
                             onClick={() => {
@@ -313,7 +364,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                                 price: dish.price,
                                 categoryId: dish.categoryId,
                                 description: dish.description ?? "",
-                                image: dish.image ?? ""
+                                image: dish.image ?? "",
                               });
                               setIsDishModalOpen(true);
                             }}
@@ -322,7 +373,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                             <PencilSimple size={18} weight="bold" />
                           </button>
                           <button
-                            onClick={() => handleDeleteDish(dish.id)}
+                            onClick={() => handleDeleteDish.mutate(dish.id)}
                             className="p-1.5 text-[#23140c]/40 hover:text-red-500 transition-colors"
                           >
                             <Trash size={18} weight="bold" />
@@ -330,7 +381,8 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                         </div>
                       </div>
                       <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">
-                        {categories.find(c => c.id === dish.categoryId)?.name || 'N/A'}
+                        {categories.find((c) => c.id === dish.categoryId)
+                          ?.name || "N/A"}
                       </p>
                       <p className="mt-1 line-clamp-1 text-xs font-medium text-[#23140c]/50">
                         {dish.description}
@@ -341,10 +393,10 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                         {(dish.price / 1000).toLocaleString()}k
                       </span>
                       <button
-                        onClick={() => toggleDishAvailability(dish)}
-                        className={`rounded-full px-4 py-1.5 text-[10px] font-black transition-all ${dish.isAvailable ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}
+                        onClick={() => toggleDishAvailability.mutate(dish)}
+                        className={`rounded-full px-4 py-1.5 text-[10px] font-black transition-all ${dish.isAvailable ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}
                       >
-                        {dish.isAvailable ? 'Đang bán' : 'Hết hàng'}
+                        {dish.isAvailable ? "Đang bán" : "Hết hàng"}
                       </button>
                     </div>
                   </div>
@@ -375,7 +427,13 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
               <h3 className="text-3xl font-black tracking-tighter text-[#23140c]">
                 {editingCategory ? "Sửa danh mục" : "Danh mục mới"}
               </h3>
-              <form onSubmit={handleCreateCategory} className="mt-8 space-y-6">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleCreateCategory.mutate();
+                }}
+                className="mt-8 space-y-6"
+              >
                 <div className="space-y-3">
                   <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
                     <Tag size={20} weight="bold" className="text-orange-500" />
@@ -432,17 +490,29 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                 {editingDish ? "Chỉnh sửa món ăn" : "Món ăn mới"}
               </h3>
 
-              <form onSubmit={handleDishSubmit} className="mt-10 grid gap-8 md:grid-cols-2">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleDishSubmit.mutate();
+                }}
+                className="mt-10 grid gap-8 md:grid-cols-2"
+              >
                 <div className="space-y-3">
                   <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
-                    <CookingPot size={20} weight="bold" className="text-orange-500" />
+                    <CookingPot
+                      size={20}
+                      weight="bold"
+                      className="text-orange-500"
+                    />
                     Tên món ăn
                   </label>
                   <input
                     required
                     type="text"
                     value={dishForm.name}
-                    onChange={(e) => setDishForm({ ...dishForm, name: e.target.value })}
+                    onChange={(e) =>
+                      setDishForm({ ...dishForm, name: e.target.value })
+                    }
                     className="h-14 w-full rounded-2xl bg-[#fff7ed] px-6 text-lg font-bold text-[#23140c] outline-none ring-2 ring-transparent focus:bg-white focus:ring-orange-500/20"
                   />
                 </div>
@@ -455,38 +525,60 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                   <select
                     required
                     value={dishForm.categoryId}
-                    onChange={(e) => setDishForm({ ...dishForm, categoryId: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setDishForm({
+                        ...dishForm,
+                        categoryId: Number(e.target.value),
+                      })
+                    }
                     className="h-14 w-full rounded-2xl bg-[#fff7ed] px-6 text-lg font-bold text-[#23140c] outline-none ring-2 ring-transparent focus:bg-white focus:ring-orange-500/20"
                   >
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="space-y-3">
                   <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
-                    <CurrencyCircleDollar size={20} weight="bold" className="text-orange-500" />
+                    <CurrencyCircleDollar
+                      size={20}
+                      weight="bold"
+                      className="text-orange-500"
+                    />
                     Giá (VNĐ)
                   </label>
                   <input
                     required
                     type="number"
                     value={dishForm.price}
-                    onChange={(e) => setDishForm({ ...dishForm, price: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setDishForm({
+                        ...dishForm,
+                        price: Number(e.target.value),
+                      })
+                    }
                     className="h-14 w-full rounded-2xl bg-[#fff7ed] px-6 text-lg font-bold text-[#23140c] outline-none ring-2 ring-transparent focus:bg-white focus:ring-orange-500/20"
                   />
                 </div>
 
                 <div className="space-y-3">
                   <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
-                    <ImageIcon size={20} weight="bold" className="text-orange-500" />
+                    <ImageIcon
+                      size={20}
+                      weight="bold"
+                      className="text-orange-500"
+                    />
                     Link ảnh
                   </label>
                   <input
                     type="url"
                     value={dishForm.image}
-                    onChange={(e) => setDishForm({ ...dishForm, image: e.target.value })}
+                    onChange={(e) =>
+                      setDishForm({ ...dishForm, image: e.target.value })
+                    }
                     className="h-14 w-full rounded-2xl bg-[#fff7ed] px-6 text-lg font-bold text-[#23140c] outline-none ring-2 ring-transparent focus:bg-white focus:ring-orange-500/20"
                   />
                 </div>
@@ -498,7 +590,9 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailPagePro
                   </label>
                   <textarea
                     value={dishForm.description}
-                    onChange={(e) => setDishForm({ ...dishForm, description: e.target.value })}
+                    onChange={(e) =>
+                      setDishForm({ ...dishForm, description: e.target.value })
+                    }
                     rows={3}
                     className="w-full rounded-2xl bg-[#fff7ed] p-6 text-lg font-bold text-[#23140c] outline-none ring-2 ring-transparent focus:bg-white focus:ring-orange-500/20 resize-none"
                   ></textarea>

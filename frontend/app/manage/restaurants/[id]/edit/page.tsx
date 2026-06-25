@@ -16,24 +16,28 @@ import {
   CheckCircle,
   WarningCircle,
   FloppyDiskBack,
-  Truck
+  Truck,
 } from "@phosphor-icons/react";
 import Link from "next/link";
-import { updateRestaurant, getRestaurantById, RestaurantPayload } from "@/lib/restaurant";
+import {
+  updateRestaurant,
+  getRestaurantById,
+  RestaurantPayload,
+} from "@/lib/restaurant";
 import { ApiError } from "@/lib/api";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 
 interface EditRestaurantPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function EditRestaurantPage({ params }: EditRestaurantPageProps) {
+export default function EditRestaurantPage({
+  params,
+}: EditRestaurantPageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [success, setSuccess] = useState(false);
-
   const [formData, setFormData] = useState<RestaurantPayload>({
     name: "",
     address: "",
@@ -44,35 +48,40 @@ export default function EditRestaurantPage({ params }: EditRestaurantPageProps) 
     openTime: "08:00",
     closeTime: "22:00",
     deliveryFee: 15000,
-    imgage: ""
+    imgage: "",
+  });
+
+  const {
+    data,
+    isLoading: isLoadingQuery,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["restaurant", Number(id)],
+    queryFn: () => getRestaurantById(Number(id)),
   });
 
   useEffect(() => {
-    async function fetchRestaurant() {
-      try {
-        const data = await getRestaurantById(Number(id));
-        setFormData({
-          name: data.name,
-          address: data.address,
-          city: data.city,
-          cuisine: data.cuisine,
-          description: data.description || "",
-          phoneNumber: data.phoneNumber || "",
-          openTime: data.openTime,
-          closeTime: data.closeTime,
-          deliveryFee: Number(data.deliveryFee || 0),
-          imgage: data.imgage || ""
-        });
-      } catch (err) {
-        setError("Không thể tải thông tin nhà hàng.");
-      } finally {
-        setIsFetching(false);
-      }
+    if (data) {
+      setFormData({
+        name: data.name,
+        address: data.address,
+        city: data.city,
+        cuisine: data.cuisine,
+        description: data.description || "",
+        phoneNumber: data.phoneNumber || "",
+        openTime: data.openTime,
+        closeTime: data.closeTime,
+        deliveryFee: Number(data.deliveryFee || 0),
+        imgage: data.imgage || "",
+      });
     }
-    fetchRestaurant();
-  }, [id]);
+  }, [data]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -80,29 +89,29 @@ export default function EditRestaurantPage({ params }: EditRestaurantPageProps) 
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      await updateRestaurant(Number(id), formData);
+  const handleSubmit = useMutation({
+    mutationFn: () => updateRestaurant(Number(id), formData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant", Number(id)] });
+      queryClient.invalidateQueries({ queryKey: ["myRestaurants"] });
+      queryClient.invalidateQueries({ queryKey: ["manage", "overview"] });
       setSuccess(true);
       setTimeout(() => {
         router.push("/manage/restaurants");
       }, 2000);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Đã xảy ra lỗi không xác định.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+  });
 
-  if (isFetching) {
+  const isLoading = handleSubmit.isPending;
+  const error = queryError
+    ? "Không thể tải thông tin nhà hàng."
+    : handleSubmit.error
+      ? handleSubmit.error instanceof ApiError
+        ? handleSubmit.error.message
+        : "Đã xảy ra lỗi không xác định."
+      : null;
+
+  if (isLoadingQuery) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-orange-500 border-t-transparent"></div>
@@ -135,13 +144,21 @@ export default function EditRestaurantPage({ params }: EditRestaurantPageProps) 
             <div className="mb-6 rounded-full bg-emerald-50 p-6 text-emerald-500">
               <CheckCircle size={80} weight="fill" />
             </div>
-            <h2 className="text-3xl font-black text-[#23140c]">Cập nhật thành công!</h2>
+            <h2 className="text-3xl font-black text-[#23140c]">
+              Cập nhật thành công!
+            </h2>
             <p className="mt-4 text-lg font-medium text-[#23140c]/40">
               Thông tin nhà hàng đã được cập nhật. Đang chuyển hướng...
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-10">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit.mutate();
+            }}
+            className="space-y-10"
+          >
             {error && (
               <div className="flex items-center gap-3 rounded-2xl bg-red-50 p-6 text-red-600 ring-1 ring-red-100">
                 <WarningCircle size={24} weight="fill" />
@@ -152,7 +169,11 @@ export default function EditRestaurantPage({ params }: EditRestaurantPageProps) 
             <div className="grid gap-8 md:grid-cols-2">
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
-                  <Storefront size={20} weight="bold" className="text-orange-500" />
+                  <Storefront
+                    size={20}
+                    weight="bold"
+                    className="text-orange-500"
+                  />
                   Tên nhà hàng
                 </label>
                 <input
@@ -167,7 +188,11 @@ export default function EditRestaurantPage({ params }: EditRestaurantPageProps) 
 
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
-                  <CookingPot size={20} weight="bold" className="text-orange-500" />
+                  <CookingPot
+                    size={20}
+                    weight="bold"
+                    className="text-orange-500"
+                  />
                   Loại hình ẩm thực
                 </label>
                 <input
@@ -197,7 +222,11 @@ export default function EditRestaurantPage({ params }: EditRestaurantPageProps) 
 
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
-                  <Buildings size={20} weight="bold" className="text-orange-500" />
+                  <Buildings
+                    size={20}
+                    weight="bold"
+                    className="text-orange-500"
+                  />
                   Thành phố
                 </label>
                 <input
@@ -274,7 +303,11 @@ export default function EditRestaurantPage({ params }: EditRestaurantPageProps) 
 
               <div className="space-y-3 md:col-span-2">
                 <label className="flex items-center gap-2 text-sm font-black text-[#23140c]">
-                  <ImageIcon size={20} weight="bold" className="text-orange-500" />
+                  <ImageIcon
+                    size={20}
+                    weight="bold"
+                    className="text-orange-500"
+                  />
                   Link ảnh nhà hàng
                 </label>
                 <input
