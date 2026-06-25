@@ -64,11 +64,11 @@ Restaurant owner emails are generated with this format:
 Example emails if the database is freshly seeded:
 
 ```text
-bep.nang.sai.gon.1@restaurant.hungerdash.local
-mi.lua.cho.lon.2@restaurant.hungerdash.local
-green.bowl.lab.3@restaurant.hungerdash.local
-tiem.nuoc.mo.4@restaurant.hungerdash.local
-k.chicken.station.5@restaurant.hungerdash.local
+bep.nang.sai.gon.@restaurant.hungerdash.local
+mi.lua.cho.lon.@restaurant.hungerdash.local
+green.bowl.lab.@restaurant.hungerdash.local
+tiem.nuoc.mo.@restaurant.hungerdash.local
+k.chicken.station.@restaurant.hungerdash.local
 ```
 
 Note: the number at the end is restaurantId, so it may be different depending on your database. Run npm run seed:owners to print the exact email list in the terminal.

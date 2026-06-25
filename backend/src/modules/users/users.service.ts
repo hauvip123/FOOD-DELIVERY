@@ -239,7 +239,6 @@ export class UsersService {
     };
   }
 
-
   async updateProfile(userId: number, profileData: UpdateProfileDto) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
