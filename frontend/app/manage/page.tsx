@@ -114,14 +114,14 @@ export default function ManageDashboard() {
         <div className="flex flex-wrap gap-3">
           <Link
             href="/manage/orders"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-[1rem] bg-[#23140c] px-5 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-[0.98]"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#23140c] px-5 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-[0.98]"
           >
             <Handbag size={18} weight="bold" />
             Xử lý đơn hàng
           </Link>
           <Link
             href="/manage/restaurants"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-[1rem] bg-white px-5 text-sm font-black text-[#23140c] ring-1 ring-black/5 transition-all hover:text-[#ff6b00] active:scale-[0.98]"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-white px-5 text-sm font-black text-[#23140c] ring-1 ring-black/5 transition-all hover:text-[#ff6b00] active:scale-[0.98]"
           >
             <Storefront size={18} weight="bold" />
             Nhà hàng
@@ -130,7 +130,7 @@ export default function ManageDashboard() {
       </header>
 
       {errorMessage && (
-        <div className="flex items-center gap-3 rounded-[1.5rem] bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
+        <div className="flex items-center gap-3 rounded-3xl bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
           <WarningCircle size={20} weight="bold" />
           {errorMessage}
         </div>
@@ -142,17 +142,17 @@ export default function ManageDashboard() {
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="h-36 animate-pulse rounded-[2rem] bg-white ring-1 ring-black/5"
+                className="h-36 animate-pulse rounded-4xl bg-white ring-1 ring-black/5"
               />
             ))}
           </div>
           <div className="grid gap-6 xl:grid-cols-[1.45fr_0.85fr]">
-            <div className="h-[430px] animate-pulse rounded-[2rem] bg-white ring-1 ring-black/5" />
-            <div className="h-[430px] animate-pulse rounded-[2rem] bg-white ring-1 ring-black/5" />
+            <div className="h-[430px] animate-pulse rounded-4xl bg-white ring-1 ring-black/5" />
+            <div className="h-[430px] animate-pulse rounded-4xl bg-white ring-1 ring-black/5" />
           </div>
         </div>
       ) : !overview ? (
-        <div className="rounded-[2rem] border border-dashed border-[#23140c]/10 bg-white px-6 py-20 text-center">
+        <div className="rounded-4xl border border-dashed border-[#23140c]/10 bg-white px-6 py-20 text-center">
           <Receipt
             size={48}
             weight="bold"
@@ -181,11 +181,11 @@ export default function ManageDashboard() {
                     stiffness: 100,
                     damping: 20,
                   }}
-                  className="rounded-[2rem] bg-white p-6 shadow-[0_18px_45px_-30px_rgba(35,20,12,0.32)] ring-1 ring-black/5"
+                  className="rounded-4xl bg-white p-6 shadow-[0_18px_45px_-30px_rgba(35,20,12,0.32)] ring-1 ring-black/5"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div
-                      className={`grid size-12 place-items-center rounded-[1rem] ${stat.tone}`}
+                      className={`grid size-12 place-items-center rounded-2xl ${stat.tone}`}
                     >
                       <Icon size={25} weight="bold" />
                     </div>
@@ -216,7 +216,7 @@ export default function ManageDashboard() {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-            <section className="rounded-[2rem] bg-white p-6 shadow-[0_22px_55px_-34px_rgba(35,20,12,0.38)] ring-1 ring-black/5">
+            <section className="rounded-4xl bg-white p-6 shadow-[0_22px_55px_-34px_rgba(35,20,12,0.38)] ring-1 ring-black/5">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-[#ff6b00]">
@@ -230,7 +230,7 @@ export default function ManageDashboard() {
               </div>
               <div className="space-y-3">
                 {overview.topRestaurants.length === 0 ? (
-                  <div className="rounded-[1.5rem] border border-dashed border-[#23140c]/10 px-4 py-14 text-center">
+                  <div className="rounded-3xl border border-dashed border-[#23140c]/10 px-4 py-14 text-center">
                     <Storefront
                       size={42}
                       weight="bold"
@@ -247,7 +247,7 @@ export default function ManageDashboard() {
                       href={`/manage/restaurants/${restaurant.id}`}
                       className="group grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-[1.25rem] bg-[#fffcf8] p-4 ring-1 ring-[#23140c]/5 transition-all hover:bg-orange-50 active:scale-[0.99]"
                     >
-                      <div className="grid size-11 place-items-center rounded-[1rem] bg-white text-sm font-black text-[#ff6b00] ring-1 ring-black/5">
+                      <div className="grid size-11 place-items-center rounded-2xl bg-white text-sm font-black text-[#ff6b00] ring-1 ring-black/5">
                         {index + 1}
                       </div>
                       <div className="min-w-0">
@@ -280,7 +280,7 @@ export default function ManageDashboard() {
               </div>
             </section>
 
-            <section className="rounded-[2rem] bg-white p-6 shadow-[0_22px_55px_-34px_rgba(35,20,12,0.38)] ring-1 ring-black/5">
+            <section className="rounded-4xl bg-white p-6 shadow-[0_22px_55px_-34px_rgba(35,20,12,0.38)] ring-1 ring-black/5">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-[#ff6b00]">

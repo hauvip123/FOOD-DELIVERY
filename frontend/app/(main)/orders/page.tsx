@@ -121,7 +121,7 @@ function formatDate(value: string) {
 
 export default function OrdersPage() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
- 
+
   const queryClient = useQueryClient();
   const [payingId, setPayingId] = useState<number | null>(null);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
@@ -172,7 +172,9 @@ export default function OrdersPage() {
       });
     },
     onError: (err) => {
-      setCustomError(err instanceof ApiError ? err.message : "Có lỗi xảy ra khi hủy đơn.");
+      setCustomError(
+        err instanceof ApiError ? err.message : "Có lỗi xảy ra khi hủy đơn.",
+      );
     },
     onSettled: () => {
       setCancellingId(null);
@@ -189,7 +191,11 @@ export default function OrdersPage() {
       queryClient.invalidateQueries({ queryKey: ["myOrders"] });
     },
     onError: (err) => {
-      setCustomError(err instanceof ApiError ? err.message : "Có lỗi xảy ra khi xác nhận nhận hàng.");
+      setCustomError(
+        err instanceof ApiError
+          ? err.message
+          : "Có lỗi xảy ra khi xác nhận nhận hàng.",
+      );
     },
     onSettled: () => {
       setReceivingId(null);
@@ -226,12 +232,13 @@ export default function OrdersPage() {
     confirmReceivedMutation.mutate(id);
   }
 
-  const errorMessage = (error instanceof Error ? error.message : "") || customError;
+  const errorMessage =
+    (error instanceof Error ? error.message : "") || customError;
 
   if (!isAuthLoading && !isAuthenticated) {
     return (
       <div className="flex min-h-[80dvh] items-center justify-center px-4 text-center">
-        <div className="max-w-md rounded-[2rem] bg-white p-8 shadow-[0_20px_50px_-25px_rgba(35,20,12,0.35)] ring-1 ring-black/5">
+        <div className="max-w-md rounded-4xl bg-white p-8 shadow-[0_20px_50px_-25px_rgba(35,20,12,0.35)] ring-1 ring-black/5">
           <h1 className="text-2xl font-black text-[#23140c]">
             Bạn cần đăng nhập
           </h1>
@@ -240,7 +247,7 @@ export default function OrdersPage() {
           </p>
           <Link
             href="/login"
-            className="mt-7 inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
+            className="mt-7 inline-flex h-12 items-center justify-center rounded-2xl bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
           >
             Đăng nhập
           </Link>
@@ -268,7 +275,7 @@ export default function OrdersPage() {
               Theo dõi trạng thái xác nhận, chuẩn bị và giao hàng.
             </p>
           </div>
-          <div className="rounded-[1.5rem] bg-white px-5 py-4 ring-1 ring-black/5">
+          <div className="rounded-3xl bg-white px-5 py-4 ring-1 ring-black/5">
             <p className="text-3xl font-black text-[#23140c]">
               {activeOrders.length}
             </p>
@@ -279,7 +286,7 @@ export default function OrdersPage() {
         </header>
 
         {errorMessage && (
-          <div className="mb-8 rounded-[1.5rem] bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
+          <div className="mb-8 rounded-3xl bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
             {errorMessage}
           </div>
         )}
@@ -289,13 +296,13 @@ export default function OrdersPage() {
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={index}
-                className="h-44 animate-pulse rounded-[2rem] bg-white ring-1 ring-black/5"
+                className="h-44 animate-pulse rounded-4xl bg-white ring-1 ring-black/5"
               />
             ))}
           </div>
         ) : orders.length === 0 ? (
-          <div className="rounded-[2rem] border border-dashed border-[#23140c]/10 bg-white px-6 py-24 text-center">
-            <div className="mx-auto mb-6 grid size-20 place-items-center rounded-[1.5rem] bg-orange-50 text-[#ff6b00]">
+          <div className="rounded-4xl border border-dashed border-[#23140c]/10 bg-white px-6 py-24 text-center">
+            <div className="mx-auto mb-6 grid size-20 place-items-center rounded-3xl bg-orange-50 text-[#ff6b00]">
               <Receipt size={42} weight="bold" />
             </div>
             <h2 className="text-2xl font-black text-[#23140c]">
@@ -306,7 +313,7 @@ export default function OrdersPage() {
             </p>
             <Link
               href="/restaurants"
-              className="mt-7 inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
+              className="mt-7 inline-flex h-12 items-center justify-center rounded-2xl bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
             >
               Chọn món ngay
             </Link>
@@ -408,7 +415,7 @@ export default function OrdersPage() {
                     <div className="flex flex-wrap gap-3">
                       <Link
                         href={`/orders/${order.id}`}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-[1rem] bg-[#23140c] px-5 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#23140c] px-5 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
                       >
                         <Eye size={18} weight="bold" />
                         Xem chi tiết
@@ -417,7 +424,7 @@ export default function OrdersPage() {
                         <button
                           onClick={() => handleConfirmPayment(order.id)}
                           disabled={payingId === order.id}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-[1rem] bg-orange-50 px-5 text-sm font-black text-orange-600 ring-1 ring-orange-100 transition-all hover:bg-orange-100 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-orange-50 px-5 text-sm font-black text-orange-600 ring-1 ring-orange-100 transition-all hover:bg-orange-100 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
                         >
                           <CreditCard size={18} weight="bold" />
                           {payingId === order.id
@@ -431,7 +438,7 @@ export default function OrdersPage() {
                         <button
                           onClick={() => handleConfirmReceived(order.id)}
                           disabled={receivingId === order.id}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-[1rem] bg-emerald-500 px-5 text-sm font-black text-white transition-all hover:bg-emerald-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 text-sm font-black text-white transition-all hover:bg-emerald-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
                         >
                           <Package size={18} weight="bold" />
                           {receivingId === order.id
@@ -442,7 +449,7 @@ export default function OrdersPage() {
                       {canReview && (
                         <Link
                           href={`/orders/${order.id}`}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-[1rem] bg-orange-50 px-5 text-sm font-black text-orange-600 ring-1 ring-orange-100 transition-all hover:bg-orange-100 active:scale-95"
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-orange-50 px-5 text-sm font-black text-orange-600 ring-1 ring-orange-100 transition-all hover:bg-orange-100 active:scale-95"
                         >
                           <Star size={18} weight="fill" />
                           Đánh giá
@@ -452,7 +459,7 @@ export default function OrdersPage() {
                         <button
                           onClick={() => handleCancel(order.id)}
                           disabled={cancellingId === order.id}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-[1rem] bg-red-50 px-5 text-sm font-black text-red-600 ring-1 ring-red-100 transition-all hover:bg-red-100 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-red-50 px-5 text-sm font-black text-red-600 ring-1 ring-red-100 transition-all hover:bg-red-100 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
                         >
                           <XCircle size={18} weight="bold" />
                           {cancellingId === order.id

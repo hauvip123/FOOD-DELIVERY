@@ -15,7 +15,8 @@ const fallbackDishes = [
     category: "Mới lên sóng",
     price: 72000,
     time: "28 phút",
-    image: "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&q=80&w=700",
+    image:
+      "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&q=80&w=700",
   },
   {
     id: 0,
@@ -25,7 +26,8 @@ const fallbackDishes = [
     category: "Gần đây",
     price: 64000,
     time: "22 phút",
-    image: "https://images.unsplash.com/photo-1512058560366-cd2427ff064f?auto=format&fit=crop&q=80&w=700",
+    image:
+      "https://images.unsplash.com/photo-1512058560366-cd2427ff064f?auto=format&fit=crop&q=80&w=700",
   },
   {
     id: 0,
@@ -35,7 +37,8 @@ const fallbackDishes = [
     category: "Đang thử nhiều",
     price: 88000,
     time: "31 phút",
-    image: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?auto=format&fit=crop&q=80&w=700",
+    image:
+      "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?auto=format&fit=crop&q=80&w=700",
   },
   {
     id: 0,
@@ -45,7 +48,8 @@ const fallbackDishes = [
     category: "Món mới",
     price: 39000,
     time: "18 phút",
-    image: "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&q=80&w=700",
+    image:
+      "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&q=80&w=700",
   },
 ];
 
@@ -65,7 +69,8 @@ type RecentDishesProps = {
   isLoading?: boolean;
 };
 
-const DISH_FALLBACK_IMAGE = "https://picsum.photos/seed/hungerdash-home-dish/700/500";
+const DISH_FALLBACK_IMAGE =
+  "https://picsum.photos/seed/hungerdash-home-dish/700/500";
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat("vi-VN", {
@@ -76,7 +81,10 @@ function formatPrice(price: number) {
 }
 
 function buildDishImage(dish: DishResponse) {
-  return dish.image?.trim() || DISH_FALLBACK_IMAGE.replace("hungerdash-home-dish", "home-dish-" + dish.id);
+  return (
+    dish.image?.trim() ||
+    DISH_FALLBACK_IMAGE.replace("hungerdash-home-dish", "home-dish-" + dish.id)
+  );
 }
 
 function buildRecentDishes(dishes: DishResponse[]): RecentDishCard[] {
@@ -92,8 +100,12 @@ function buildRecentDishes(dishes: DishResponse[]): RecentDishCard[] {
   }));
 }
 
-export function RecentDishes({ dishes = [], isLoading = false }: RecentDishesProps) {
-  const displayDishes = dishes.length > 0 ? buildRecentDishes(dishes) : fallbackDishes;
+export function RecentDishes({
+  dishes = [],
+  isLoading = false,
+}: RecentDishesProps) {
+  const displayDishes =
+    dishes.length > 0 ? buildRecentDishes(dishes) : fallbackDishes;
 
   return (
     <section className="bg-[#fffaf4] py-16 lg:py-20">
@@ -109,14 +121,18 @@ export function RecentDishes({ dishes = [], isLoading = false }: RecentDishesPro
             </h2>
           </div>
           <p className="max-w-md text-sm font-semibold leading-6 text-[#704322]/70">
-            Những món mới được thêm vào menu hôm nay, hợp cho lúc muốn đổi vị nhanh mà vẫn chắc bụng.
+            Những món mới được thêm vào menu hôm nay, hợp cho lúc muốn đổi vị
+            nhanh mà vẫn chắc bụng.
           </p>
         </div>
 
         {isLoading && dishes.length === 0 ? (
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-[23rem] animate-pulse rounded-[2rem] bg-white ring-1 ring-[#23140c]/5" />
+              <div
+                key={index}
+                className="h-[23rem] animate-pulse rounded-4xl bg-white ring-1 ring-[#23140c]/5"
+              />
             ))}
           </div>
         ) : (
@@ -128,9 +144,16 @@ export function RecentDishes({ dishes = [], isLoading = false }: RecentDishesPro
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.08, duration: 0.5 }}
-                className="group overflow-hidden rounded-[2rem] bg-white shadow-[0_20px_50px_-24px_rgba(35,20,12,0.24)] ring-1 ring-[#23140c]/5 transition-all hover:-translate-y-1 hover:shadow-[0_28px_60px_-22px_rgba(255,107,0,0.28)]"
+                className="group overflow-hidden rounded-4xl bg-white shadow-[0_20px_50px_-24px_rgba(35,20,12,0.24)] ring-1 ring-[#23140c]/5 transition-all hover:-translate-y-1 hover:shadow-[0_28px_60px_-22px_rgba(255,107,0,0.28)]"
               >
-                <Link href={dish.restaurantId ? "/restaurants/" + dish.restaurantId : "/menu"} className="block">
+                <Link
+                  href={
+                    dish.restaurantId
+                      ? "/restaurants/" + dish.restaurantId
+                      : "/menu"
+                  }
+                  className="block"
+                >
                   <div className="relative h-52 overflow-hidden bg-orange-50">
                     <Image
                       src={dish.image}
@@ -153,13 +176,17 @@ export function RecentDishes({ dishes = [], isLoading = false }: RecentDishesPro
                 </Link>
 
                 <div className="p-5">
-                  <p className="text-xs font-black uppercase tracking-widest text-[#ff6b00]">{dish.restaurant}</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-[#ff6b00]">
+                    {dish.restaurant}
+                  </p>
                   <h3 className="mt-2 min-h-14 text-xl font-black leading-7 tracking-tight text-[#23140c]">
                     {dish.name}
                   </h3>
                   <div className="mt-5 flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-2xl font-black text-[#23140c]">{formatPrice(dish.price)}</p>
+                      <p className="text-2xl font-black text-[#23140c]">
+                        {formatPrice(dish.price)}
+                      </p>
                       <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-[#704322]/60">
                         <Clock size={15} weight="bold" />
                         {dish.time}

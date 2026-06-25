@@ -198,7 +198,7 @@ export default function RestaurantDetailPage({
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="rounded-[2rem] bg-white p-4 ring-1 ring-black/5"
+                className="rounded-4xl bg-white p-4 ring-1 ring-black/5"
               >
                 <div className="h-28 animate-pulse rounded-2xl bg-[#f1e7dc]" />
               </div>
@@ -212,7 +212,7 @@ export default function RestaurantDetailPage({
   if (restaurantQuery.error || !restaurant) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#fffcf8] px-4">
-        <div className="max-w-md rounded-[2rem] bg-white p-8 text-center shadow-[0_20px_50px_-25px_rgba(35,20,12,0.35)] ring-1 ring-black/5">
+        <div className="max-w-md rounded-4xl bg-white p-8 text-center shadow-[0_20px_50px_-25px_rgba(35,20,12,0.35)] ring-1 ring-black/5">
           <div className="mx-auto mb-5 grid size-16 place-items-center rounded-2xl bg-red-50 text-red-500">
             <Info size={32} weight="bold" />
           </div>
@@ -226,7 +226,7 @@ export default function RestaurantDetailPage({
           </p>
           <Link
             href="/restaurants"
-            className="mt-7 inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
+            className="mt-7 inline-flex h-12 items-center justify-center rounded-2xl bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
           >
             Quay lại danh sách
           </Link>
@@ -410,7 +410,7 @@ export default function RestaurantDetailPage({
               )}
 
               {filteredDishes.length === 0 ? (
-                <div className="rounded-[2rem] border border-dashed border-[#23140c]/10 bg-white px-6 py-20 text-center">
+                <div className="rounded-4xl border border-dashed border-[#23140c]/10 bg-white px-6 py-20 text-center">
                   <h3 className="text-2xl font-black text-[#23140c]">
                     Chưa có món ăn
                   </h3>
@@ -429,7 +429,7 @@ export default function RestaurantDetailPage({
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.04 }}
-                        className={`group flex gap-4 rounded-[2rem] bg-white p-4 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] ring-1 ring-black/5 transition-all hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] ${dish.isAvailable ? "" : "opacity-60 grayscale-[0.25]"}`}
+                        className={`group flex gap-4 rounded-4xl bg-white p-4 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] ring-1 ring-black/5 transition-all hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] ${dish.isAvailable ? "" : "opacity-60 grayscale-[0.25]"}`}
                       >
                         <div className="relative h-28 w-28 flex-shrink-0 overflow-hidden rounded-2xl bg-[#f1e7dc]">
                           <img
@@ -524,7 +524,7 @@ export default function RestaurantDetailPage({
           </div>
         </div>
 
-        <section className="mt-14 rounded-[2rem] bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
+        <section className="mt-14 rounded-4xl bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-[#ff6b00]">
@@ -534,7 +534,7 @@ export default function RestaurantDetailPage({
                 Khách nói gì về {restaurant.name}
               </h2>
             </div>
-            <div className="flex w-fit items-center gap-2 rounded-[1rem] bg-orange-50 px-4 py-3 text-orange-500 ring-1 ring-orange-100">
+            <div className="flex w-fit items-center gap-2 rounded-2xl bg-orange-50 px-4 py-3 text-orange-500 ring-1 ring-orange-100">
               <Star size={22} weight="fill" />
               <span className="text-lg font-black text-[#23140c]">
                 {formatRating(restaurant.ratingAverage)}
@@ -557,7 +557,7 @@ export default function RestaurantDetailPage({
                   <button
                     key={option}
                     onClick={() => setReviewRatingFilter(option)}
-                    className={`inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-[1rem] px-4 text-xs font-black transition-all active:scale-95 ${reviewRatingFilter === option ? "bg-[#23140c] text-white" : "bg-[#fffcf8] text-[#704322]/65 ring-1 ring-[#23140c]/5 hover:text-[#ff6b00]"}`}
+                    className={`inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl px-4 text-xs font-black transition-all active:scale-95 ${reviewRatingFilter === option ? "bg-[#23140c] text-white" : "bg-[#fffcf8] text-[#704322]/65 ring-1 ring-[#23140c]/5 hover:text-[#ff6b00]"}`}
                   >
                     {option !== "all" && <Star size={15} weight="fill" />}
                     {option === "all" ? "Tất cả" : `${option} sao`}
@@ -577,7 +577,7 @@ export default function RestaurantDetailPage({
           )}
 
           {reviews.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-[#23140c]/10 px-6 py-16 text-center">
+            <div className="rounded-3xl border border-dashed border-[#23140c]/10 px-6 py-16 text-center">
               <Star
                 size={42}
                 weight="bold"
@@ -591,7 +591,7 @@ export default function RestaurantDetailPage({
               </p>
             </div>
           ) : filteredReviews.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-[#23140c]/10 px-6 py-16 text-center">
+            <div className="rounded-3xl border border-dashed border-[#23140c]/10 px-6 py-16 text-center">
               <Star
                 size={42}
                 weight="bold"
@@ -609,7 +609,7 @@ export default function RestaurantDetailPage({
               {filteredReviews.slice(0, 6).map((review) => (
                 <article
                   key={review.id}
-                  className="rounded-[1.5rem] bg-[#fffcf8] p-5 ring-1 ring-[#23140c]/5"
+                  className="rounded-3xl bg-[#fffcf8] p-5 ring-1 ring-[#23140c]/5"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-1">

@@ -25,8 +25,11 @@ import {
   getRestaurants,
   RestaurantResponse,
 } from "@/lib/restaurant";
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 type SortValue = "createdAt-DESC" | "ratingAverage-DESC" | "name-ASC";
 type OpenFilter = "all" | "open" | "closed";
@@ -98,7 +101,6 @@ export default function RestaurantsPage() {
   const [sort, setSort] = useState<SortValue>("createdAt-DESC");
   const [page, setPage] = useState(1);
 
-
   const debouncedSearch = useDebouncedValue(searchQuery);
 
   const activeFilterCount = useMemo(() => {
@@ -111,37 +113,49 @@ export default function RestaurantsPage() {
       minRating,
     ].filter(Boolean).length;
   }, [debouncedSearch, city, address, cuisine, openFilter, minRating]);
-    const { sortBy, sortOrder } = getSortParts(sort);
-const {
+  const { sortBy, sortOrder } = getSortParts(sort);
+  const {
     data: result,
     isLoading,
     isPlaceholderData,
     error,
   } = useQuery({
-    queryKey: ["restaurants", { search: debouncedSearch, city, address, cuisine, openFilter, minRating, sort, page }],
-    queryFn: () => getRestaurants({
-      search: debouncedSearch.trim() || undefined,
-      city: city.trim() || undefined,
-      address: address.trim() || undefined,
-      cuisine: cuisine.trim() || undefined,
-      isOpen: openFilter === "all" ? undefined : openFilter === "open",
-      minRating: minRating ? Number(minRating) : undefined,
-      sortBy,
-      sortOrder,
-      page,
-      limit: 9,
-    }),
-    placeholderData: keepPreviousData,             
+    queryKey: [
+      "restaurants",
+      {
+        search: debouncedSearch,
+        city,
+        address,
+        cuisine,
+        openFilter,
+        minRating,
+        sort,
+        page,
+      },
+    ],
+    queryFn: () =>
+      getRestaurants({
+        search: debouncedSearch.trim() || undefined,
+        city: city.trim() || undefined,
+        address: address.trim() || undefined,
+        cuisine: cuisine.trim() || undefined,
+        isOpen: openFilter === "all" ? undefined : openFilter === "open",
+        minRating: minRating ? Number(minRating) : undefined,
+        sortBy,
+        sortOrder,
+        page,
+        limit: 9,
+      }),
+    placeholderData: keepPreviousData,
   });
 
-const {data: favoriteRestaurantIds= []}= useQuery({
-  queryKey: ["favoriteRestaurantIds"],
-  queryFn: getFavoriteRestaurantIds,
-  enabled: isAuthenticated && !isAuthLoading,
-  staleTime:2*60*1000,
-  
-})
-const restaurants = result?.data ?? [];
+  const { data: favoriteRestaurantIds = [] } = useQuery({
+    queryKey: ["favoriteRestaurantIds"],
+    queryFn: getFavoriteRestaurantIds,
+    enabled: isAuthenticated && !isAuthLoading,
+    staleTime: 2 * 60 * 1000,
+  });
+  const restaurants = result?.data ?? [];
   const total = result?.meta.total ?? 0;
   const totalPages = Math.max(result?.meta.totalPages ?? 1, 1);
 
@@ -167,18 +181,19 @@ const restaurants = result?.data ?? [];
     queryClient.setQueryData<number[]>(["favoriteRestaurantIds"], (oldIds) => {
       if (!oldIds) return isFavorite ? [restaurantId] : [];
       if (isFavorite) {
-        return oldIds.includes(restaurantId) ? oldIds : [...oldIds, restaurantId];
+        return oldIds.includes(restaurantId)
+          ? oldIds
+          : [...oldIds, restaurantId];
       } else {
         return oldIds.filter((id) => id !== restaurantId);
       }
     });
 
-  
     queryClient.invalidateQueries({ queryKey: ["favoriteRestaurants"] });
   };
 
   const filterSidebar = (
-    <div className="rounded-[2rem] border border-[#23140c]/5 bg-white p-4 shadow-[0_20px_45px_-32px_rgba(35,20,12,0.45)] lg:sticky lg:top-28">
+    <div className="rounded-4xl border border-[#23140c]/5 bg-white p-4 shadow-[0_20px_45px_-32px_rgba(35,20,12,0.45)] lg:sticky lg:top-28">
       <div className="flex items-start justify-between gap-4 border-b border-[#23140c]/5 pb-5">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-[#ff6b00]">
@@ -189,7 +204,7 @@ const restaurants = result?.data ?? [];
             Tìm quán phù hợp
           </h2>
         </div>
-        <div className="grid size-12 shrink-0 place-items-center rounded-[1rem] bg-[#23140c] text-lg font-black text-white">
+        <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#23140c] text-lg font-black text-white">
           {activeFilterCount}
         </div>
       </div>
@@ -236,7 +251,7 @@ const restaurants = result?.data ?? [];
                   resetToFirstPage(() => setAddress(event.target.value))
                 }
                 placeholder="Đường, phường..."
-                className="h-12 w-full rounded-[1rem] border border-[#23140c]/5 bg-[#fffcf8] px-4 text-sm font-bold text-[#23140c] transition-all placeholder:text-[#704322]/35 focus:border-orange-200 focus:bg-white focus:ring-4 focus:ring-orange-100"
+                className="h-12 w-full rounded-2xl border border-[#23140c]/5 bg-[#fffcf8] px-4 text-sm font-bold text-[#23140c] transition-all placeholder:text-[#704322]/35 focus:border-orange-200 focus:bg-white focus:ring-4 focus:ring-orange-100"
               />
             </label>
             <label className="block">
@@ -249,7 +264,7 @@ const restaurants = result?.data ?? [];
                   resetToFirstPage(() => setCity(event.target.value))
                 }
                 placeholder="Nhập thành phố"
-                className="h-12 w-full rounded-[1rem] border border-[#23140c]/5 bg-[#fffcf8] px-4 text-sm font-bold text-[#23140c] transition-all placeholder:text-[#704322]/35 focus:border-orange-200 focus:bg-white focus:ring-4 focus:ring-orange-100"
+                className="h-12 w-full rounded-2xl border border-[#23140c]/5 bg-[#fffcf8] px-4 text-sm font-bold text-[#23140c] transition-all placeholder:text-[#704322]/35 focus:border-orange-200 focus:bg-white focus:ring-4 focus:ring-orange-100"
               />
             </label>
             <div className="flex flex-wrap gap-2">
@@ -281,7 +296,7 @@ const restaurants = result?.data ?? [];
               resetToFirstPage(() => setCuisine(event.target.value))
             }
             placeholder="Cơm, phở, pizza..."
-            className="h-12 w-full rounded-[1rem] border border-[#23140c]/5 bg-[#fffcf8] px-4 text-sm font-bold text-[#23140c] transition-all placeholder:text-[#704322]/35 focus:border-orange-200 focus:bg-white focus:ring-4 focus:ring-orange-100"
+            className="h-12 w-full rounded-2xl border border-[#23140c]/5 bg-[#fffcf8] px-4 text-sm font-bold text-[#23140c] transition-all placeholder:text-[#704322]/35 focus:border-orange-200 focus:bg-white focus:ring-4 focus:ring-orange-100"
           />
           <div className="mt-3 flex flex-wrap gap-2">
             {CUISINE_PRESETS.map((preset) => (
@@ -310,7 +325,7 @@ const restaurants = result?.data ?? [];
               <button
                 key={value}
                 onClick={() => resetToFirstPage(() => setOpenFilter(value))}
-                className={`min-h-11 rounded-[1rem] px-2 text-xs font-black transition-all active:scale-95 ${openFilter === value ? "bg-emerald-600 text-white" : "bg-[#fffcf8] text-[#704322]/70 ring-1 ring-[#23140c]/5 hover:text-emerald-700"}`}
+                className={`min-h-11 rounded-2xl px-2 text-xs font-black transition-all active:scale-95 ${openFilter === value ? "bg-emerald-600 text-white" : "bg-[#fffcf8] text-[#704322]/70 ring-1 ring-[#23140c]/5 hover:text-emerald-700"}`}
               >
                 {value === "all"
                   ? "Tất cả"
@@ -332,7 +347,7 @@ const restaurants = result?.data ?? [];
               onClick={() =>
                 resetToFirstPage(() => setMinRating(minRating ? "" : "4"))
               }
-              className={`flex h-12 w-full items-center justify-center gap-2 rounded-[1rem] text-sm font-black transition-all active:scale-95 ${minRating ? "bg-amber-500 text-white" : "bg-[#fffcf8] text-[#704322]/70 ring-1 ring-[#23140c]/5 hover:text-amber-600"}`}
+              className={`flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-black transition-all active:scale-95 ${minRating ? "bg-amber-500 text-white" : "bg-[#fffcf8] text-[#704322]/70 ring-1 ring-[#23140c]/5 hover:text-amber-600"}`}
             >
               <Star size={16} weight="fill" />
               Từ 4.0
@@ -353,7 +368,7 @@ const restaurants = result?.data ?? [];
               onChange={(event) =>
                 resetToFirstPage(() => setSort(event.target.value as SortValue))
               }
-              className="h-12 w-full appearance-none rounded-[1rem] border border-[#23140c]/5 bg-[#fffcf8] px-4 text-sm font-black text-[#23140c] transition-all focus:border-orange-200 focus:bg-white focus:ring-4 focus:ring-orange-100"
+              className="h-12 w-full appearance-none rounded-2xl border border-[#23140c]/5 bg-[#fffcf8] px-4 text-sm font-black text-[#23140c] transition-all focus:border-orange-200 focus:bg-white focus:ring-4 focus:ring-orange-100"
             >
               {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -368,7 +383,7 @@ const restaurants = result?.data ?? [];
       {activeFilterCount > 0 && (
         <button
           onClick={clearFilters}
-          className="mt-1 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[1rem] bg-[#23140c] px-4 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
+          className="mt-1 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#23140c] px-4 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
         >
           <X size={16} weight="bold" />
           Xóa tất cả bộ lọc
@@ -459,10 +474,10 @@ const restaurants = result?.data ?? [];
                       <div className="h-4 w-full animate-pulse rounded-full bg-[#f1e7dc]" />
                       <div className="h-4 w-4/5 animate-pulse rounded-full bg-[#f1e7dc]" />
                       <div className="grid gap-2 sm:grid-cols-2">
-                        <div className="h-11 animate-pulse rounded-[1rem] bg-[#f1e7dc]" />
-                        <div className="h-11 animate-pulse rounded-[1rem] bg-[#f1e7dc]" />
+                        <div className="h-11 animate-pulse rounded-2xl bg-[#f1e7dc]" />
+                        <div className="h-11 animate-pulse rounded-2xl bg-[#f1e7dc]" />
                       </div>
-                      <div className="h-13 w-full animate-pulse rounded-[1rem] bg-[#f1e7dc] md:w-48" />
+                      <div className="h-13 w-full animate-pulse rounded-2xl bg-[#f1e7dc] md:w-48" />
                     </div>
                   </div>
                 ))}
@@ -536,7 +551,7 @@ const restaurants = result?.data ?? [];
                         </p>
 
                         <div className="mt-5 grid gap-2 text-xs font-black text-[#704322] sm:grid-cols-2">
-                          <div className="flex min-w-0 items-center gap-2 rounded-[1rem] bg-[#fff7ed] px-3 py-2.5">
+                          <div className="flex min-w-0 items-center gap-2 rounded-2xl bg-[#fff7ed] px-3 py-2.5">
                             <MapPin
                               size={16}
                               weight="bold"
@@ -546,7 +561,7 @@ const restaurants = result?.data ?? [];
                               {restaurant.address}
                             </span>
                           </div>
-                          <div className="flex min-w-0 items-center gap-2 rounded-[1rem] bg-[#fff7ed] px-3 py-2.5">
+                          <div className="flex min-w-0 items-center gap-2 rounded-2xl bg-[#fff7ed] px-3 py-2.5">
                             <Clock
                               size={16}
                               weight="bold"
@@ -556,14 +571,15 @@ const restaurants = result?.data ?? [];
                               {restaurant.openTime} - {restaurant.closeTime}
                             </span>
                           </div>
-                          <div className="flex min-w-0 items-center gap-2 rounded-[1rem] bg-orange-50 px-3 py-2.5 text-[#ff6b00] sm:col-span-2">
+                          <div className="flex min-w-0 items-center gap-2 rounded-2xl bg-orange-50 px-3 py-2.5 text-[#ff6b00] sm:col-span-2">
                             <Truck
                               size={16}
                               weight="bold"
                               className="shrink-0"
                             />
                             <span className="truncate">
-                              Phí giao {formatDeliveryFee(restaurant.deliveryFee)}
+                              Phí giao{" "}
+                              {formatDeliveryFee(restaurant.deliveryFee)}
                             </span>
                           </div>
                         </div>
@@ -576,7 +592,7 @@ const restaurants = result?.data ?? [];
                           </p>
                           <Link
                             href={`/restaurants/${restaurant.id}`}
-                            className={`inline-flex h-12 items-center justify-center gap-2 rounded-[1rem] px-6 text-sm font-black transition-all active:scale-95 ${restaurant.isOpen ? "bg-[#23140c] text-white hover:bg-[#ff6b00]" : "pointer-events-none bg-[#23140c]/5 text-[#704322]/40"}`}
+                            className={`inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black transition-all active:scale-95 ${restaurant.isOpen ? "bg-[#23140c] text-white hover:bg-[#ff6b00]" : "pointer-events-none bg-[#23140c]/5 text-[#704322]/40"}`}
                           >
                             {restaurant.isOpen
                               ? "Xem thực đơn"
@@ -592,8 +608,8 @@ const restaurants = result?.data ?? [];
                 </motion.div>
               </AnimatePresence>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-[#23140c]/10 bg-white px-6 py-24 text-center">
-                <div className="mb-6 grid size-24 place-items-center rounded-[2rem] bg-orange-50 text-[#ff6b00]">
+              <div className="flex flex-col items-center justify-center rounded-4xl border border-dashed border-[#23140c]/10 bg-white px-6 py-24 text-center">
+                <div className="mb-6 grid size-24 place-items-center rounded-4xl bg-orange-50 text-[#ff6b00]">
                   <Buildings size={48} weight="bold" />
                 </div>
                 <h3 className="text-2xl font-black tracking-tight text-[#23140c]">
@@ -605,7 +621,7 @@ const restaurants = result?.data ?? [];
                 </p>
                 <button
                   onClick={clearFilters}
-                  className="mt-7 inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
+                  className="mt-7 inline-flex h-12 items-center justify-center rounded-2xl bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
                 >
                   Xem tất cả nhà hàng
                 </button>
@@ -619,11 +635,11 @@ const restaurants = result?.data ?? [];
                     setPage((currentPage) => Math.max(currentPage - 1, 1))
                   }
                   disabled={page === 1}
-                  className="grid size-12 place-items-center rounded-[1rem] bg-white text-[#23140c] ring-1 ring-[#23140c]/5 transition-all hover:text-[#ff6b00] disabled:pointer-events-none disabled:opacity-40 active:scale-95"
+                  className="grid size-12 place-items-center rounded-2xl bg-white text-[#23140c] ring-1 ring-[#23140c]/5 transition-all hover:text-[#ff6b00] disabled:pointer-events-none disabled:opacity-40 active:scale-95"
                 >
                   <CaretLeft size={20} weight="bold" />
                 </button>
-                <div className="rounded-[1rem] bg-white px-5 py-3 text-sm font-black text-[#704322] ring-1 ring-[#23140c]/5">
+                <div className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-[#704322] ring-1 ring-[#23140c]/5">
                   Trang {page} / {totalPages}
                 </div>
                 <button
@@ -633,7 +649,7 @@ const restaurants = result?.data ?? [];
                     )
                   }
                   disabled={page === totalPages}
-                  className="grid size-12 place-items-center rounded-[1rem] bg-white text-[#23140c] ring-1 ring-[#23140c]/5 transition-all hover:text-[#ff6b00] disabled:pointer-events-none disabled:opacity-40 active:scale-95"
+                  className="grid size-12 place-items-center rounded-2xl bg-white text-[#23140c] ring-1 ring-[#23140c]/5 transition-all hover:text-[#ff6b00] disabled:pointer-events-none disabled:opacity-40 active:scale-95"
                 >
                   <CaretRight size={20} weight="bold" />
                 </button>

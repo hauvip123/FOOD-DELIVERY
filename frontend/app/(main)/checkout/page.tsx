@@ -105,7 +105,7 @@ export default function CheckoutPage() {
   if (!isAuthLoading && !isAuthenticated) {
     return (
       <div className="flex min-h-[80dvh] items-center justify-center px-4 text-center">
-        <div className="max-w-md rounded-[2rem] bg-white p-8 shadow-[0_20px_50px_-25px_rgba(35,20,12,0.35)] ring-1 ring-black/5">
+        <div className="max-w-md rounded-4xl bg-white p-8 shadow-[0_20px_50px_-25px_rgba(35,20,12,0.35)] ring-1 ring-black/5">
           <h1 className="text-2xl font-black text-[#23140c]">
             Bạn cần đăng nhập
           </h1>
@@ -114,7 +114,7 @@ export default function CheckoutPage() {
           </p>
           <Link
             href="/login"
-            className="mt-7 inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
+            className="mt-7 inline-flex h-12 items-center justify-center rounded-2xl bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
           >
             Đăng nhập
           </Link>
@@ -126,8 +126,8 @@ export default function CheckoutPage() {
   if (createdOrder) {
     return (
       <div className="flex min-h-[80dvh] items-center justify-center px-4 text-center">
-        <div className="max-w-lg rounded-[2rem] bg-white p-8 shadow-[0_20px_50px_-25px_rgba(35,20,12,0.35)] ring-1 ring-black/5">
-          <div className="mx-auto mb-6 grid size-20 place-items-center rounded-[1.5rem] bg-emerald-50 text-emerald-600">
+        <div className="max-w-lg rounded-4xl bg-white p-8 shadow-[0_20px_50px_-25px_rgba(35,20,12,0.35)] ring-1 ring-black/5">
+          <div className="mx-auto mb-6 grid size-20 place-items-center rounded-3xl bg-emerald-50 text-emerald-600">
             <CheckCircle size={44} weight="fill" />
           </div>
           <h1 className="text-3xl font-black tracking-tight text-[#23140c]">
@@ -140,13 +140,13 @@ export default function CheckoutPage() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/orders"
-              className="inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
             >
               Xem trạng thái đơn
             </Link>
             <Link
               href="/restaurants"
-              className="inline-flex h-12 items-center justify-center rounded-[1rem] bg-orange-50 px-6 text-sm font-black text-[#ff6b00] transition-all hover:bg-orange-100 active:scale-95"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-orange-50 px-6 text-sm font-black text-[#ff6b00] transition-all hover:bg-orange-100 active:scale-95"
             >
               Tiếp tục mua sắm
             </Link>
@@ -177,7 +177,7 @@ export default function CheckoutPage() {
         <div className="grid gap-8 lg:grid-cols-[1fr_420px] lg:items-start">
           <form
             onSubmit={handleSubmit}
-            className="space-y-6 rounded-[2rem] bg-white p-6 shadow-[0_20px_50px_-25px_rgba(35,20,12,0.18)] ring-1 ring-black/5 sm:p-8"
+            className="space-y-6 rounded-4xl bg-white p-6 shadow-[0_20px_50px_-25px_rgba(35,20,12,0.18)] ring-1 ring-black/5 sm:p-8"
           >
             <div>
               <h2 className="flex items-center gap-3 text-2xl font-black text-[#23140c]">
@@ -192,7 +192,7 @@ export default function CheckoutPage() {
             </div>
 
             {errorMessage && (
-              <p className="rounded-[1rem] bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-100">
+              <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-100">
                 {errorMessage}
               </p>
             )}
@@ -213,7 +213,7 @@ export default function CheckoutPage() {
                     value={phoneNumber}
                     onChange={(event) => setPhoneNumber(event.target.value)}
                     placeholder="0901234567"
-                    className="h-14 w-full rounded-[1rem] border border-[#23140c]/10 bg-[#fffcf8] pl-12 pr-4 text-sm font-bold text-[#23140c] outline-none transition-all focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
+                    className="h-14 w-full rounded-2xl border border-[#23140c]/10 bg-[#fffcf8] pl-12 pr-4 text-sm font-bold text-[#23140c] outline-none transition-all focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
                   />
                 </div>
               </label>
@@ -233,7 +233,7 @@ export default function CheckoutPage() {
                     value={city}
                     onChange={(event) => setCity(event.target.value)}
                     placeholder="Hồ Chí Minh"
-                    className="h-14 w-full rounded-[1rem] border border-[#23140c]/10 bg-[#fffcf8] pl-12 pr-4 text-sm font-bold text-[#23140c] outline-none transition-all focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
+                    className="h-14 w-full rounded-2xl border border-[#23140c]/10 bg-[#fffcf8] pl-12 pr-4 text-sm font-bold text-[#23140c] outline-none transition-all focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
                   />
                 </div>
               </label>
@@ -248,7 +248,7 @@ export default function CheckoutPage() {
                 value={street}
                 onChange={(event) => setStreet(event.target.value)}
                 placeholder="Số nhà, tên đường, phường/xã"
-                className="h-14 w-full rounded-[1rem] border border-[#23140c]/10 bg-[#fffcf8] px-4 text-sm font-bold text-[#23140c] outline-none transition-all focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
+                className="h-14 w-full rounded-2xl border border-[#23140c]/10 bg-[#fffcf8] px-4 text-sm font-bold text-[#23140c] outline-none transition-all focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
               />
             </label>
 
@@ -259,7 +259,7 @@ export default function CheckoutPage() {
                 onChange={(event) => setNote(event.target.value)}
                 placeholder="Ví dụ: gọi trước khi giao, không lấy hành..."
                 rows={4}
-                className="w-full resize-none rounded-[1rem] border border-[#23140c]/10 bg-[#fffcf8] px-4 py-3 text-sm font-bold text-[#23140c] outline-none transition-all focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
+                className="w-full resize-none rounded-2xl border border-[#23140c]/10 bg-[#fffcf8] px-4 py-3 text-sm font-bold text-[#23140c] outline-none transition-all focus:border-orange-200 focus:ring-4 focus:ring-orange-100"
               />
             </label>
 
@@ -274,7 +274,7 @@ export default function CheckoutPage() {
                       key={option.value}
                       type="button"
                       onClick={() => setPaymentMethod(option.value)}
-                      className={`min-h-24 rounded-[1rem] p-4 text-left transition-all active:scale-95 ${isSelected ? "bg-[#23140c] text-white" : "bg-[#fffcf8] text-[#704322] ring-1 ring-[#23140c]/10 hover:text-[#ff6b00]"}`}
+                      className={`min-h-24 rounded-2xl p-4 text-left transition-all active:scale-95 ${isSelected ? "bg-[#23140c] text-white" : "bg-[#fffcf8] text-[#704322] ring-1 ring-[#23140c]/10 hover:text-[#ff6b00]"}`}
                     >
                       <Icon
                         size={24}
@@ -313,20 +313,20 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={createOrderMutation.isPending || items.length === 0}
-              className="flex h-14 w-full items-center justify-center rounded-[1rem] bg-[#ff6b00] text-sm font-black text-white transition-all hover:bg-orange-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
+              className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#ff6b00] text-sm font-black text-white transition-all hover:bg-orange-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
             >
               {createOrderMutation.isPending ? "Đang đặt hàng..." : "Đặt hàng"}
             </button>
           </form>
 
-          <aside className="rounded-[2rem] bg-[#23140c] p-6 text-white shadow-[0_24px_60px_-25px_rgba(35,20,12,0.5)] sm:p-8 lg:sticky lg:top-32">
+          <aside className="rounded-4xl bg-[#23140c] p-6 text-white shadow-[0_24px_60px_-25px_rgba(35,20,12,0.5)] sm:p-8 lg:sticky lg:top-32">
             <h2 className="mb-6 flex items-center gap-3 text-2xl font-black tracking-tight">
               <Receipt size={28} weight="bold" className="text-orange-500" />
               Đơn hàng
             </h2>
 
             {items.length === 0 ? (
-              <div className="rounded-[1.5rem] bg-white/5 p-5 text-sm font-bold text-white/55">
+              <div className="rounded-3xl bg-white/5 p-5 text-sm font-bold text-white/55">
                 Giỏ hàng đang trống.
               </div>
             ) : (

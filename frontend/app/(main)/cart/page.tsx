@@ -115,7 +115,7 @@ export default function CartPage() {
         </header>
 
         {errorMessage && (
-          <div className="mb-8 rounded-[1.5rem] bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
+          <div className="mb-8 rounded-3xl bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
             {errorMessage}
           </div>
         )}

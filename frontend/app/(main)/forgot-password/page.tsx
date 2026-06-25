@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
           <ArrowLeft size={18} weight="bold" /> Quay lại đăng nhập
         </Link>
 
-        <div className="rounded-[2rem] bg-white p-6 shadow-[0_30px_80px_-40px_rgba(35,20,12,0.35)] ring-1 ring-black/5 sm:p-10">
+        <div className="rounded-4xl bg-white p-6 shadow-[0_30px_80px_-40px_rgba(35,20,12,0.35)] ring-1 ring-black/5 sm:p-10">
           <h1 className="text-4xl font-black tracking-tight text-[#23140c]">
             Quên mật khẩu
           </h1>

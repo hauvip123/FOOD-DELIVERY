@@ -2,15 +2,15 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { 
-  MagnifyingGlass, 
-  Funnel, 
-  DotsThreeVertical, 
-  UserCircle, 
+import {
+  MagnifyingGlass,
+  Funnel,
+  DotsThreeVertical,
+  UserCircle,
   WarningCircle,
   Envelope,
   Phone,
-  Calendar
+  Calendar,
 } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAdminUsers, AdminUser } from "@/lib/admin";
@@ -19,7 +19,11 @@ import RoleBadge from "@/components/admin/RoleBadge";
 import UserStatusBadge from "@/components/admin/UserStatusBadge";
 import Skeleton from "@/components/admin/Skeleton";
 import ErrorMesage from "@/components/admin/ErrorMesage";
-import { formatDate, listContainerVariants, listItemVariants } from "@/components/admin/type";
+import {
+  formatDate,
+  listContainerVariants,
+  listItemVariants,
+} from "@/components/admin/type";
 
 // --- Sub-components ---
 
@@ -45,7 +49,11 @@ export default function AdminUsersPage() {
         const data = await getAdminUsers();
         setUsers(data);
       } catch (error) {
-        setErrorMessage(error instanceof ApiError ? error.message : "Không thể tải danh sách người dùng.");
+        setErrorMessage(
+          error instanceof ApiError
+            ? error.message
+            : "Không thể tải danh sách người dùng.",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -55,11 +63,12 @@ export default function AdminUsersPage() {
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
-      const matchesSearch = 
+      const matchesSearch =
         user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesRole = roleFilter === "all" || user.role === roleFilter;
-      const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "all" || user.status === statusFilter;
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, searchQuery, roleFilter, statusFilter]);
@@ -69,7 +78,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial="hidden"
       animate="visible"
       variants={listContainerVariants}
@@ -78,20 +87,25 @@ export default function AdminUsersPage() {
       {/* Header Section */}
       <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2"
           >
             <span className="flex size-2 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.5)]" />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Hệ thống</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">
+              Hệ thống
+            </p>
           </motion.div>
-          <h1 className="mt-3 text-5xl font-black tracking-tight text-stone-900">Người dùng</h1>
+          <h1 className="mt-3 text-5xl font-black tracking-tight text-stone-900">
+            Người dùng
+          </h1>
           <p className="mt-4 max-w-2xl text-base font-bold leading-relaxed text-slate-400">
-            Quản lý tất cả tài khoản người dùng, phân quyền và theo dõi trạng thái hoạt động của các thành viên.
+            Quản lý tất cả tài khoản người dùng, phân quyền và theo dõi trạng
+            thái hoạt động của các thành viên.
           </p>
         </div>
-        
+
         <div className="flex w-full flex-col gap-3 lg:w-auto lg:items-end">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
@@ -101,7 +115,7 @@ export default function AdminUsersPage() {
                 placeholder="Tìm tên, email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-14 w-full rounded-[1.5rem] border border-slate-200 bg-white pl-12 pr-6 text-sm font-bold text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 md:w-80"
+                className="h-14 w-full rounded-3xl border border-slate-200 bg-white pl-12 pr-6 text-sm font-bold text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 md:w-80"
               />
             </div>
 
@@ -109,7 +123,7 @@ export default function AdminUsersPage() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="h-14 cursor-pointer appearance-none rounded-[1.5rem] border border-slate-200 bg-white pl-12 pr-10 text-sm font-black text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
+                className="h-14 cursor-pointer appearance-none rounded-3xl border border-slate-200 bg-white pl-12 pr-10 text-sm font-black text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
               >
                 <option value="all">Tất cả vai trò</option>
                 <option value="customer">Khách hàng</option>
@@ -129,7 +143,12 @@ export default function AdminUsersPage() {
                   key={option.value}
                   type="button"
                   onClick={() => setStatusFilter(option.value)}
-                  className={"h-11 rounded-[1rem] px-3 text-xs font-black transition-all active:scale-[0.98] " + (isSelected ? "bg-stone-900 text-white shadow-lg shadow-slate-200" : "text-slate-400 hover:bg-slate-50 hover:text-stone-900")}
+                  className={
+                    "h-11 rounded-2xl px-3 text-xs font-black transition-all active:scale-[0.98] " +
+                    (isSelected
+                      ? "bg-stone-900 text-white shadow-lg shadow-slate-200"
+                      : "text-slate-400 hover:bg-slate-50 hover:text-stone-900")
+                  }
                 >
                   {option.label}
                 </button>
@@ -148,8 +167,12 @@ export default function AdminUsersPage() {
             <div className="grid size-20 place-items-center rounded-3xl bg-slate-100 text-slate-300">
               <UserCircle size={48} weight="bold" />
             </div>
-            <h2 className="mt-6 text-2xl font-black tracking-tight text-stone-900">Không tìm thấy người dùng</h2>
-            <p className="mt-2 text-slate-400 font-bold">Hãy thử tìm kiếm với từ khóa khác.</p>
+            <h2 className="mt-6 text-2xl font-black tracking-tight text-stone-900">
+              Không tìm thấy người dùng
+            </h2>
+            <p className="mt-2 text-slate-400 font-bold">
+              Hãy thử tìm kiếm với từ khóa khác.
+            </p>
           </div>
         ) : (
           <AnimatePresence mode="popLayout">
@@ -165,7 +188,7 @@ export default function AdminUsersPage() {
               >
                 {/* Avatar */}
                 <div className="relative shrink-0">
-                  <div className="size-16 rounded-[1.5rem] bg-orange-50 grid place-items-center text-orange-200 overflow-hidden ring-4 ring-slate-50 transition-transform group-hover:scale-105">
+                  <div className="size-16 rounded-3xl bg-orange-50 grid place-items-center text-orange-200 overflow-hidden ring-4 ring-slate-50 transition-transform group-hover:scale-105">
                     {user.avatar ? (
                       <div
                         className="size-full bg-cover bg-center"

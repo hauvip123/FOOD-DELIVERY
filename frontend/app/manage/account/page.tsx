@@ -12,7 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
 import { normalizeRole } from "@/lib/auth";
-import { getMyRestaurants, RestaurantResponse } from "@/lib/restaurant";
+import { getMyRestaurants } from "@/lib/restaurant";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileUpdateForm } from "@/components/account/ProfileUpdateForm";
 import { useQuery } from "@tanstack/react-query";
@@ -119,7 +119,7 @@ export default function ManageAccountPage() {
         </p>
       </header>
 
-      <section className="overflow-hidden rounded-[2rem] bg-[#23140c] shadow-[0_30px_80px_-45px_rgba(35,20,12,0.7)]">
+      <section className="overflow-hidden rounded-4xl bg-[#23140c] shadow-[0_30px_80px_-45px_rgba(35,20,12,0.7)]">
         <div className="grid gap-8 p-7 lg:grid-cols-[1fr_auto] lg:items-end lg:p-10">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
             <div className="grid size-24 shrink-0 place-items-center rounded-[1.75rem] bg-[#ff6b00] text-3xl font-black tracking-tight text-white shadow-[0_16px_35px_-18px_rgba(255,107,0,0.8)] ring-1 ring-white/15">
@@ -144,7 +144,7 @@ export default function ManageAccountPage() {
               </p>
             </div>
           </div>
-          <div className="rounded-[1.5rem] bg-white/10 px-5 py-4 text-white ring-1 ring-white/10">
+          <div className="rounded-3xl bg-white/10 px-5 py-4 text-white ring-1 ring-white/10">
             <p className="text-3xl font-black">{restaurants.length}</p>
             <p className="text-xs font-black uppercase tracking-widest text-white/45">
               Nhà hàng quản lý
@@ -158,7 +158,7 @@ export default function ManageAccountPage() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.85fr]">
-        <section className="rounded-[2rem] bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
+        <section className="rounded-4xl bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-[#ff6b00]">
@@ -186,7 +186,7 @@ export default function ManageAccountPage() {
                   <p className="text-[11px] font-black uppercase tracking-widest text-[#704322]/40">
                     {item.label}
                   </p>
-                  <p className="mt-1 break-words text-sm font-black text-[#23140c]">
+                  <p className="mt-1 wrap-break-word text-sm font-black text-[#23140c]">
                     {item.value}
                   </p>
                 </div>
@@ -195,7 +195,7 @@ export default function ManageAccountPage() {
           </div>
         </section>
 
-        <section className="rounded-[2rem] bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.24)] ring-1 ring-black/5 sm:p-7">
+        <section className="rounded-4xl bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.24)] ring-1 ring-black/5 sm:p-7">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-[#ff6b00]">
@@ -209,7 +209,7 @@ export default function ManageAccountPage() {
           </div>
 
           {errorMessage && (
-            <div className="mb-4 rounded-[1rem] bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-100">
+            <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-100">
               {errorMessage}
             </div>
           )}
@@ -224,7 +224,7 @@ export default function ManageAccountPage() {
               ))}
             </div>
           ) : restaurants.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-[#23140c]/10 px-5 py-12 text-center">
+            <div className="rounded-3xl border border-dashed border-[#23140c]/10 px-5 py-12 text-center">
               <Storefront
                 size={42}
                 weight="bold"
@@ -238,7 +238,7 @@ export default function ManageAccountPage() {
               </p>
               <Link
                 href="/manage/restaurants/new"
-                className="mt-6 inline-flex h-11 items-center justify-center rounded-[1rem] bg-[#23140c] px-5 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
+                className="mt-6 inline-flex h-11 items-center justify-center rounded-2xl bg-[#23140c] px-5 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
               >
                 Tạo nhà hàng
               </Link>

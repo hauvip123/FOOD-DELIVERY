@@ -10,8 +10,8 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
-import { getMyRestaurants, RestaurantResponse } from "@/lib/restaurant";
-import { getManagedReviews, ManagedReviewResponse } from "@/lib/review";
+import { getMyRestaurants } from "@/lib/restaurant";
+import { getManagedReviews } from "@/lib/review";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 type RatingFilter = "all" | 1 | 2 | 3 | 4 | 5;
@@ -182,7 +182,7 @@ export default function ManageReviewsPage() {
                   : Number(event.target.value),
               )
             }
-            className="h-12 rounded-[1rem] bg-[#fffcf8] px-4 text-sm font-black text-[#23140c] outline-none ring-1 ring-[#23140c]/10 focus:ring-2 focus:ring-[#ff6b00]"
+            className="h-12 rounded-2xl bg-[#fffcf8] px-4 text-sm font-black text-[#23140c] outline-none ring-1 ring-[#23140c]/10 focus:ring-2 focus:ring-[#ff6b00]"
           >
             <option value="all">Tất cả nhà hàng</option>
             {restaurants.map((restaurant) => (
@@ -197,7 +197,7 @@ export default function ManageReviewsPage() {
               <button
                 key={option.value}
                 onClick={() => setRatingFilter(option.value)}
-                className={`inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-[1rem] px-4 text-xs font-black transition-all active:scale-95 ${ratingFilter === option.value ? "bg-[#23140c] text-white" : "bg-[#fffcf8] text-[#704322]/65 ring-1 ring-[#23140c]/5 hover:text-[#ff6b00]"}`}
+                className={`inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl px-4 text-xs font-black transition-all active:scale-95 ${ratingFilter === option.value ? "bg-[#23140c] text-white" : "bg-[#fffcf8] text-[#704322]/65 ring-1 ring-[#23140c]/5 hover:text-[#ff6b00]"}`}
               >
                 {option.value !== "all" && <Star size={15} weight="fill" />}
                 {option.label}
@@ -208,7 +208,7 @@ export default function ManageReviewsPage() {
       </div>
 
       {errorMessage && (
-        <div className="flex items-center gap-3 rounded-[1.5rem] bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
+        <div className="flex items-center gap-3 rounded-3xl bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
           <WarningCircle size={20} weight="bold" />
           {errorMessage}
         </div>

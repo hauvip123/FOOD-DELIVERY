@@ -83,31 +83,35 @@ export default function MenuPage() {
 
   const { items, addToCart, removeFromCart } = useCart();
 
-
   // reuse cache from home page
- const {data: categoryNames =[]}= useQuery({
-  queryKey: ["categories"],
-  queryFn: () => getAllCategories(),
-  staleTime:10*60*1000,
-  select: (data) => data.map((c) => c.name),  
-})
-   const {
+  const { data: categoryNames = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => getAllCategories(),
+    staleTime: 10 * 60 * 1000,
+    select: (data) => data.map((c) => c.name),
+  });
+  const {
     data: dishesResult,
     isLoading,
-    isPlaceholderData,  
+    isPlaceholderData,
     error,
   } = useQuery({
-    queryKey: ["dishes", { search: debouncedSearch, category: activeCategoryName, page }],
-    queryFn: () => getDishes({
-      search: debouncedSearch.trim() || undefined,
-      categoryName: activeCategoryName === "all" ? undefined : activeCategoryName,
-      isAvailable: true,
-      sortBy: "createdAt",
-      sortOrder: "DESC",
-      page,
-      limit: 12,
-    }),
-    placeholderData: keepPreviousData,             
+    queryKey: [
+      "dishes",
+      { search: debouncedSearch, category: activeCategoryName, page },
+    ],
+    queryFn: () =>
+      getDishes({
+        search: debouncedSearch.trim() || undefined,
+        categoryName:
+          activeCategoryName === "all" ? undefined : activeCategoryName,
+        isAvailable: true,
+        sortBy: "createdAt",
+        sortOrder: "DESC",
+        page,
+        limit: 12,
+      }),
+    placeholderData: keepPreviousData,
   });
   const dishes = dishesResult?.data ?? [];
   const total = dishesResult?.meta.total ?? 0;
@@ -154,7 +158,7 @@ export default function MenuPage() {
             </motion.p>
           </div>
 
-          <div className="rounded-[2rem] border border-[#23140c]/5 bg-white p-5 shadow-[0_24px_50px_-24px_rgba(35,20,12,0.18)]">
+          <div className="rounded-4xl border border-[#23140c]/5 bg-white p-5 shadow-[0_24px_50px_-24px_rgba(35,20,12,0.18)]">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#704322]/40">
               Đang hiển thị
             </p>
@@ -177,7 +181,7 @@ export default function MenuPage() {
           </div>
         </header>
 
-        <div className="sticky top-24 z-20 mb-10 space-y-4 rounded-[2rem] border border-white/70 bg-white/85 p-4 shadow-[0_20px_45px_-28px_rgba(35,20,12,0.2)] backdrop-blur-xl">
+        <div className="sticky top-24 z-20 mb-10 space-y-4 rounded-4xl border border-white/70 bg-white/85 p-4 shadow-[0_20px_45px_-28px_rgba(35,20,12,0.2)] backdrop-blur-xl">
           <div className="relative">
             <MagnifyingGlass className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#704322]/35" />
             <input
@@ -229,7 +233,7 @@ export default function MenuPage() {
             {Array.from({ length: 8 }).map((_, index) => (
               <div
                 key={index}
-                className="h-[25rem] animate-pulse rounded-[2rem] bg-white ring-1 ring-[#23140c]/5"
+                className="h-[25rem] animate-pulse rounded-4xl bg-white ring-1 ring-[#23140c]/5"
               />
             ))}
           </div>
@@ -274,9 +278,9 @@ export default function MenuPage() {
                 <motion.article
                   key={dish.id}
                   variants={itemVariants}
-                  className="group flex min-h-[25rem] flex-col overflow-hidden rounded-[2rem] bg-white p-4 ring-1 ring-[#23140c]/5 transition-all hover:-translate-y-1 hover:shadow-[0_28px_55px_-24px_rgba(35,20,12,0.22)]"
+                  className="group flex min-h-[25rem] flex-col overflow-hidden rounded-4xl bg-white p-4 ring-1 ring-[#23140c]/5 transition-all hover:-translate-y-1 hover:shadow-[0_28px_55px_-24px_rgba(35,20,12,0.22)]"
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-[1.5rem] bg-orange-50">
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-orange-50">
                     <Image
                       src={buildDishImage(dish)}
                       alt={dish.name}

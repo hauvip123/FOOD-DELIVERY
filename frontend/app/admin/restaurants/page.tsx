@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
-import { 
-  Storefront, 
-  MagnifyingGlass, 
-  Funnel, 
-  DotsThreeVertical, 
-  MapPin, 
-  ForkKnife, 
+import {
+  Storefront,
+  MagnifyingGlass,
+  Funnel,
+  DotsThreeVertical,
+  MapPin,
+  ForkKnife,
   Star,
   Calendar,
 } from "@phosphor-icons/react";
@@ -16,7 +16,11 @@ import { ApiError } from "@/lib/api";
 import RestaurantStatusBadge from "@/components/admin/RestaurantStatusBadge";
 import Skeleton from "@/components/admin/Skeleton";
 import ErrorMesage from "@/components/admin/ErrorMesage";
-import { formatDate, listContainerVariants, listItemVariants } from "@/components/admin/type";
+import {
+  formatDate,
+  listContainerVariants,
+  listItemVariants,
+} from "@/components/admin/type";
 
 // --- Sub-components ---
 
@@ -36,7 +40,11 @@ export default function AdminRestaurantsPage() {
         const data = await getAdminRestaurants();
         setRestaurants(data);
       } catch (error) {
-        setErrorMessage(error instanceof ApiError ? error.message : "Không thể tải danh sách nhà hàng.");
+        setErrorMessage(
+          error instanceof ApiError
+            ? error.message
+            : "Không thể tải danh sách nhà hàng.",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -51,11 +59,13 @@ export default function AdminRestaurantsPage() {
 
   const filteredRestaurants = useMemo(() => {
     return restaurants.filter((res) => {
-      const matchesSearch = 
+      const matchesSearch =
         res.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         res.cuisine.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCity = cityFilter === "all" || res.city === cityFilter;
-      const matchesStatus = statusFilter === "all" || (statusFilter === "open" ? res.isOpen : !res.isOpen);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "open" ? res.isOpen : !res.isOpen);
       return matchesSearch && matchesCity && matchesStatus;
     });
   }, [restaurants, searchQuery, cityFilter, statusFilter]);
@@ -64,7 +74,7 @@ export default function AdminRestaurantsPage() {
     return <ErrorMesage errorMessage={errorMessage} />;
   }
   return (
-    <motion.div 
+    <motion.div
       initial="hidden"
       animate="visible"
       variants={listContainerVariants}
@@ -73,52 +83,59 @@ export default function AdminRestaurantsPage() {
       {/* Header Section */}
       <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2"
           >
             <span className="flex size-2 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.5)]" />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Hệ thống</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">
+              Hệ thống
+            </p>
           </motion.div>
-          <h1 className="mt-3 text-5xl font-black tracking-tight text-stone-900">Nhà hàng</h1>
+          <h1 className="mt-3 text-5xl font-black tracking-tight text-stone-900">
+            Nhà hàng
+          </h1>
           <p className="mt-4 max-w-2xl text-base font-bold leading-relaxed text-slate-400">
-            Quản lý tất cả các đối tác nhà hàng, theo dõi trạng thái hoạt động và đánh giá từ khách hàng.
+            Quản lý tất cả các đối tác nhà hàng, theo dõi trạng thái hoạt động
+            và đánh giá từ khách hàng.
           </p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
             <MagnifyingGlass className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Tìm tên, loại món..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-14 w-full rounded-[1.5rem] border border-slate-200 bg-white pl-12 pr-6 text-sm font-bold text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 md:w-80"
+              className="h-14 w-full rounded-3xl border border-slate-200 bg-white pl-12 pr-6 text-sm font-bold text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 md:w-80"
             />
           </div>
-          
+
           <div className="flex gap-3">
             <div className="relative">
-              <select 
+              <select
                 value={cityFilter}
                 onChange={(e) => setCityFilter(e.target.value)}
-                className="appearance-none h-14 rounded-[1.5rem] border border-slate-200 bg-white pl-12 pr-10 text-sm font-black text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 cursor-pointer"
+                className="appearance-none h-14 rounded-3xl border border-slate-200 bg-white pl-12 pr-10 text-sm font-black text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 cursor-pointer"
               >
                 <option value="all">Thành phố</option>
-                {cities.map(city => (
-                  <option key={city} value={city}>{city}</option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
                 ))}
               </select>
               <MapPin className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
 
             <div className="relative">
-              <select 
+              <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none h-14 rounded-[1.5rem] border border-slate-200 bg-white pl-12 pr-10 text-sm font-black text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 cursor-pointer"
+                className="appearance-none h-14 rounded-3xl border border-slate-200 bg-white pl-12 pr-10 text-sm font-black text-stone-900 shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 cursor-pointer"
               >
                 <option value="all">Trạng thái</option>
                 <option value="open">Đang mở</option>
@@ -139,8 +156,12 @@ export default function AdminRestaurantsPage() {
             <div className="grid size-20 place-items-center rounded-3xl bg-slate-100 text-slate-300">
               <Storefront size={48} weight="bold" />
             </div>
-            <h2 className="mt-6 text-2xl font-black tracking-tight text-stone-900">Không tìm thấy nhà hàng</h2>
-            <p className="mt-2 text-slate-400 font-bold">Hãy thử tìm kiếm với từ khóa khác.</p>
+            <h2 className="mt-6 text-2xl font-black tracking-tight text-stone-900">
+              Không tìm thấy nhà hàng
+            </h2>
+            <p className="mt-2 text-slate-400 font-bold">
+              Hãy thử tìm kiếm với từ khóa khác.
+            </p>
           </div>
         ) : (
           <AnimatePresence mode="popLayout">
@@ -156,14 +177,20 @@ export default function AdminRestaurantsPage() {
               >
                 {/* Image Placeholder / Actual Image */}
                 <div className="relative shrink-0">
-                  <div className="size-24 rounded-[2rem] bg-orange-50 grid place-items-center text-orange-200 overflow-hidden ring-4 ring-slate-50 transition-transform group-hover:scale-105">
+                  <div className="size-24 rounded-4xl bg-orange-50 grid place-items-center text-orange-200 overflow-hidden ring-4 ring-slate-50 transition-transform group-hover:scale-105">
                     {res.imageUrl ? (
-                      <img src={res.imageUrl} alt={res.name} className="size-full object-cover" />
+                      <img
+                        src={res.imageUrl}
+                        alt={res.name}
+                        className="size-full object-cover"
+                      />
                     ) : (
                       <Storefront size={48} weight="fill" />
                     )}
                   </div>
-                  <div className={`absolute -bottom-1 -right-1 size-6 rounded-full border-4 border-white shadow-sm ${res.isOpen ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                  <div
+                    className={`absolute -bottom-1 -right-1 size-6 rounded-full border-4 border-white shadow-sm ${res.isOpen ? "bg-emerald-500" : "bg-slate-300"}`}
+                  />
                 </div>
 
                 {/* Info Main */}
@@ -174,14 +201,22 @@ export default function AdminRestaurantsPage() {
                     </h3>
                     <RestaurantStatusBadge isOpen={res.isOpen} />
                   </div>
-                  
+
                   <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                      <MapPin size={16} weight="bold" className="text-orange-500" />
+                      <MapPin
+                        size={16}
+                        weight="bold"
+                        className="text-orange-500"
+                      />
                       {res.city} • {res.address}
                     </div>
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                      <ForkKnife size={16} weight="bold" className="text-orange-500" />
+                      <ForkKnife
+                        size={16}
+                        weight="bold"
+                        className="text-orange-500"
+                      />
                       {res.cuisine}
                     </div>
                     {res.owner && (
@@ -190,9 +225,15 @@ export default function AdminRestaurantsPage() {
                           {res.owner.username.charAt(0).toUpperCase()}
                         </div>
                         <p className="text-[10px] font-bold text-slate-500">
-                          <span className="text-slate-900">{res.owner.username}</span> 
+                          <span className="text-slate-900">
+                            {res.owner.username}
+                          </span>
                           <span className="mx-1.5 text-slate-300">•</span>
-                          Sở hữu <span className="font-black text-orange-600">{res.ownerRestaurantsCount}</span> quán
+                          Sở hữu{" "}
+                          <span className="font-black text-orange-600">
+                            {res.ownerRestaurantsCount}
+                          </span>{" "}
+                          quán
                         </p>
                       </div>
                     )}
@@ -201,14 +242,22 @@ export default function AdminRestaurantsPage() {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <Star 
-                          key={i} 
-                          size={14} 
-                          weight={i < Math.floor(res.ratingAverage) ? "fill" : "bold"} 
-                          className={i < Math.floor(res.ratingAverage) ? "text-amber-400" : "text-slate-200"} 
+                        <Star
+                          key={i}
+                          size={14}
+                          weight={
+                            i < Math.floor(res.ratingAverage) ? "fill" : "bold"
+                          }
+                          className={
+                            i < Math.floor(res.ratingAverage)
+                              ? "text-amber-400"
+                              : "text-slate-200"
+                          }
                         />
                       ))}
-                      <span className="ml-2 font-mono text-sm font-black text-stone-900">{res.ratingAverage.toFixed(1)}</span>
+                      <span className="ml-2 font-mono text-sm font-black text-stone-900">
+                        {res.ratingAverage.toFixed(1)}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-300">
                       <Calendar size={14} weight="bold" />

@@ -4,7 +4,15 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChartPieSlice, House, Storefront, Users, CaretRight, SignOut, ShieldCheck } from "@phosphor-icons/react";
+import {
+  ChartPieSlice,
+  House,
+  Storefront,
+  Users,
+  CaretRight,
+  SignOut,
+  ShieldCheck,
+} from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 
 const sidebarLinks = [
@@ -13,7 +21,9 @@ const sidebarLinks = [
   { href: "/admin/restaurants", label: "Nhà hàng", icon: Storefront },
 ];
 
-export default function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function AdminLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -25,7 +35,7 @@ export default function AdminLayout({ children }: Readonly<{ children: React.Rea
 
   return (
     <ProtectedRoute allowedRoles={["admin"]}>
-      <div className="flex min-h-[100dvh] bg-[#f9fafb] font-sans selection:bg-orange-100 selection:text-orange-900">
+      <div className="flex min-h-dvh bg-[#f9fafb] font-sans selection:bg-orange-100 selection:text-orange-900">
         {/* Modern Floating Sidebar */}
         <aside className="fixed inset-y-4 left-4 z-40 hidden w-72 flex-col md:flex">
           <div className="flex h-full flex-col overflow-hidden rounded-[2.5rem] border border-slate-200/60 bg-white shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] backdrop-blur-xl">
@@ -37,8 +47,12 @@ export default function AdminLayout({ children }: Readonly<{ children: React.Rea
                   <div className="absolute inset-0 rounded-2xl bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
                 <div>
-                  <p className="text-xl font-black tracking-tight text-stone-900">HungerDash</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Admin Console</p>
+                  <p className="text-xl font-black tracking-tight text-stone-900">
+                    HungerDash
+                  </p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Admin Console
+                  </p>
                 </div>
               </Link>
             </div>
@@ -48,30 +62,40 @@ export default function AdminLayout({ children }: Readonly<{ children: React.Rea
               {sidebarLinks.map((link) => {
                 const isActive = pathname === link.href;
                 const Icon = link.icon;
-                
+
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
                     className={`group relative flex items-center justify-between rounded-2xl px-4 py-4 transition-all duration-300 ${
-                      isActive 
-                        ? "bg-orange-50 text-orange-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]" 
+                      isActive
+                        ? "bg-orange-50 text-orange-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
                         : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-orange-600" : ""}`}>
+                      <div
+                        className={`transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-orange-600" : ""}`}
+                      >
                         <Icon size={22} weight={isActive ? "fill" : "bold"} />
                       </div>
-                      <span className={`text-sm tracking-tight ${isActive ? "font-black" : "font-bold"}`}>
+                      <span
+                        className={`text-sm tracking-tight ${isActive ? "font-black" : "font-bold"}`}
+                      >
                         {link.label}
                       </span>
                     </div>
                     {isActive && (
-                      <motion.div layoutId="active-pill" className="h-1.5 w-1.5 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.5)]" />
+                      <motion.div
+                        layoutId="active-pill"
+                        className="h-1.5 w-1.5 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.5)]"
+                      />
                     )}
                     {!isActive && (
-                      <CaretRight size={14} className="opacity-0 transition-all duration-300 -translate-x-2 group-hover:translate-x-0 group-hover:opacity-100" />
+                      <CaretRight
+                        size={14}
+                        className="opacity-0 transition-all duration-300 -translate-x-2 group-hover:translate-x-0 group-hover:opacity-100"
+                      />
                     )}
                   </Link>
                 );
@@ -80,19 +104,23 @@ export default function AdminLayout({ children }: Readonly<{ children: React.Rea
 
             {/* Bottom Section */}
             <div className="mt-auto space-y-3 border-t border-slate-100 p-6">
-              <div className="rounded-[1.5rem] bg-slate-50 p-4">
+              <div className="rounded-3xl bg-slate-50 p-4">
                 <div className="flex items-center gap-3">
                   <div className="grid size-10 place-items-center rounded-2xl bg-orange-100 text-orange-600">
                     <ShieldCheck size={20} weight="bold" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black text-stone-900">{user?.username ?? "Admin"}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quản trị hệ thống</p>
+                    <p className="truncate text-sm font-black text-stone-900">
+                      {user?.username ?? "Admin"}
+                    </p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Quản trị hệ thống
+                    </p>
                   </div>
                 </div>
               </div>
-              <Link 
-                href="/" 
+              <Link
+                href="/"
                 className="flex w-full items-center justify-center gap-3 rounded-[1.25rem] bg-slate-950 py-4 text-xs font-black text-white shadow-xl shadow-slate-200 transition-all hover:-translate-y-1 hover:shadow-2xl active:scale-[0.98]"
               >
                 <House size={18} weight="bold" />
@@ -110,15 +138,19 @@ export default function AdminLayout({ children }: Readonly<{ children: React.Rea
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 px-4 py-4 md:pl-[19.5rem] md:pr-8 md:py-8">
-          <div className="mb-4 flex items-center justify-between rounded-[1.5rem] border border-slate-200/60 bg-white p-3 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.04)] md:hidden">
+        <main className="flex-1 px-4 py-4 md:pl-78 md:pr-8 md:py-8">
+          <div className="mb-4 flex items-center justify-between rounded-3xl border border-slate-200/60 bg-white p-3 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.04)] md:hidden">
             <Link href="/admin" className="flex items-center gap-3">
               <div className="grid size-10 place-items-center rounded-2xl bg-[#ff6b00] text-sm font-black text-white shadow-[0_8px_16px_-4px_rgba(255,107,0,0.4)]">
                 HD
               </div>
               <div>
-                <p className="text-sm font-black tracking-tight text-stone-900">HungerDash</p>
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Admin Console</p>
+                <p className="text-sm font-black tracking-tight text-stone-900">
+                  HungerDash
+                </p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                  Admin Console
+                </p>
               </div>
             </Link>
             <button
@@ -129,9 +161,7 @@ export default function AdminLayout({ children }: Readonly<{ children: React.Rea
               <SignOut size={18} weight="bold" />
             </button>
           </div>
-          <div className="mx-auto max-w-[1400px]">
-            {children}
-          </div>
+          <div className="mx-auto max-w-[1400px]">{children}</div>
         </main>
       </div>
     </ProtectedRoute>

@@ -56,7 +56,8 @@ function statusLabel(status: string) {
 }
 
 function statusClass(status: string) {
-  if (status === "active") return "bg-emerald-50 text-emerald-600 ring-emerald-100";
+  if (status === "active")
+    return "bg-emerald-50 text-emerald-600 ring-emerald-100";
   return "bg-slate-50 text-slate-500 ring-slate-100";
 }
 
@@ -87,7 +88,11 @@ export default function AdminUserDetailPage() {
         }
       } catch (error) {
         if (isCurrentRequest) {
-          setErrorMessage(error instanceof ApiError ? error.message : "Không thể tải thông tin người dùng.");
+          setErrorMessage(
+            error instanceof ApiError
+              ? error.message
+              : "Không thể tải thông tin người dùng.",
+          );
         }
       } finally {
         if (isCurrentRequest) {
@@ -108,7 +113,9 @@ export default function AdminUserDetailPage() {
   }, [isInvalidUserId, userId]);
 
   const hasChanges = useMemo(() => {
-    return Boolean(user && (selectedRole !== user.role || selectedStatus !== user.status));
+    return Boolean(
+      user && (selectedRole !== user.role || selectedStatus !== user.status),
+    );
   }, [selectedRole, selectedStatus, user]);
 
   async function handleSave() {
@@ -136,7 +143,11 @@ export default function AdminUserDetailPage() {
       setSelectedStatus(updatedUser.status);
       setSuccessMessage("Đã cập nhật tài khoản người dùng.");
     } catch (error) {
-      setErrorMessage(error instanceof ApiError ? error.message : "Không thể cập nhật người dùng.");
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "Không thể cập nhật người dùng.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -148,7 +159,10 @@ export default function AdminUserDetailPage() {
         title="Không mở được người dùng"
         errorMessage="Mã người dùng không hợp lệ."
         action={
-          <Link href="/admin/users" className="mt-8 flex h-12 items-center gap-2 rounded-2xl bg-stone-900 px-6 text-sm font-black text-white transition-transform active:scale-95">
+          <Link
+            href="/admin/users"
+            className="mt-8 flex h-12 items-center gap-2 rounded-2xl bg-stone-900 px-6 text-sm font-black text-white transition-transform active:scale-95"
+          >
             <ArrowLeft size={18} weight="bold" />
             Quay lại danh sách
           </Link>
@@ -167,7 +181,10 @@ export default function AdminUserDetailPage() {
         title="Không mở được người dùng"
         errorMessage={errorMessage}
         action={
-          <Link href="/admin/users" className="mt-8 flex h-12 items-center gap-2 rounded-2xl bg-stone-900 px-6 text-sm font-black text-white transition-transform active:scale-95">
+          <Link
+            href="/admin/users"
+            className="mt-8 flex h-12 items-center gap-2 rounded-2xl bg-stone-900 px-6 text-sm font-black text-white transition-transform active:scale-95"
+          >
             <ArrowLeft size={18} weight="bold" />
             Quay lại danh sách
           </Link>
@@ -179,9 +196,16 @@ export default function AdminUserDetailPage() {
   if (!user) return null;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 pb-20">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-8 pb-20"
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <Link href="/admin/users" className="flex w-fit items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 transition-all hover:border-orange-200 hover:text-orange-600 active:scale-95">
+        <Link
+          href="/admin/users"
+          className="flex w-fit items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 transition-all hover:border-orange-200 hover:text-orange-600 active:scale-95"
+        >
           <ArrowLeft size={16} weight="bold" />
           Người dùng
         </Link>
@@ -205,26 +229,41 @@ export default function AdminUserDetailPage() {
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <section className="rounded-[2.5rem] border border-slate-200/60 bg-white p-8 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.04)]">
           <div className="flex flex-col gap-6 md:flex-row md:items-start">
-            <div className="grid size-28 shrink-0 place-items-center overflow-hidden rounded-[2rem] bg-orange-50 text-orange-200 ring-8 ring-slate-50">
+            <div className="grid size-28 shrink-0 place-items-center overflow-hidden rounded-4xl bg-orange-50 text-orange-200 ring-8 ring-slate-50">
               {user.avatar ? (
-                <div className="size-full bg-cover bg-center" style={{ backgroundImage: "url(" + user.avatar + ")" }} aria-label={user.username} />
+                <div
+                  className="size-full bg-cover bg-center"
+                  style={{ backgroundImage: "url(" + user.avatar + ")" }}
+                  aria-label={user.username}
+                />
               ) : (
                 <UserCircle size={72} weight="fill" />
               )}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="truncate text-4xl font-black tracking-tight text-stone-900">{user.username}</h1>
+                <h1 className="truncate text-4xl font-black tracking-tight text-stone-900">
+                  {user.username}
+                </h1>
                 <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-orange-600 ring-1 ring-orange-100">
                   {roleLabel(user.role)}
                 </span>
-                <span className={"rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ring-1 " + statusClass(user.status)}>
+                <span
+                  className={
+                    "rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ring-1 " +
+                    statusClass(user.status)
+                  }
+                >
                   {statusLabel(user.status)}
                 </span>
               </div>
               <div className="mt-5 grid gap-3 text-sm font-bold text-slate-500 md:grid-cols-2">
                 <div className="flex items-center gap-2">
-                  <Envelope size={18} weight="bold" className="text-slate-300" />
+                  <Envelope
+                    size={18}
+                    weight="bold"
+                    className="text-slate-300"
+                  />
                   <span className="min-w-0 truncate">{user.email}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -232,11 +271,19 @@ export default function AdminUserDetailPage() {
                   <span>{user.phoneNumber ?? "Chưa có số điện thoại"}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Calendar size={18} weight="bold" className="text-slate-300" />
+                  <Calendar
+                    size={18}
+                    weight="bold"
+                    className="text-slate-300"
+                  />
                   <span>Tạo lúc {formatDate(user.createdAt)}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <ShieldCheck size={18} weight="bold" className="text-slate-300" />
+                  <ShieldCheck
+                    size={18}
+                    weight="bold"
+                    className="text-slate-300"
+                  />
                   <span>Cập nhật {formatDate(user.updatedAt)}</span>
                 </div>
               </div>
@@ -244,17 +291,29 @@ export default function AdminUserDetailPage() {
           </div>
 
           <div className="mt-8 grid gap-4 border-t border-slate-100 pt-8 md:grid-cols-3">
-            <div className="rounded-[1.5rem] bg-slate-50 p-5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">ID</p>
-              <p className="mt-2 font-mono text-2xl font-black text-stone-900">#{user.id}</p>
+            <div className="rounded-3xl bg-slate-50 p-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                ID
+              </p>
+              <p className="mt-2 font-mono text-2xl font-black text-stone-900">
+                #{user.id}
+              </p>
             </div>
-            <div className="rounded-[1.5rem] bg-slate-50 p-5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nhà hàng</p>
-              <p className="mt-2 font-mono text-2xl font-black text-stone-900">{user.restaurants.length}</p>
+            <div className="rounded-3xl bg-slate-50 p-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Nhà hàng
+              </p>
+              <p className="mt-2 font-mono text-2xl font-black text-stone-900">
+                {user.restaurants.length}
+              </p>
             </div>
-            <div className="rounded-[1.5rem] bg-slate-50 p-5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Trạng thái</p>
-              <p className="mt-2 text-lg font-black text-stone-900">{statusLabel(user.status)}</p>
+            <div className="rounded-3xl bg-slate-50 p-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Trạng thái
+              </p>
+              <p className="mt-2 text-lg font-black text-stone-900">
+                {statusLabel(user.status)}
+              </p>
             </div>
           </div>
         </section>
@@ -265,34 +324,46 @@ export default function AdminUserDetailPage() {
               <ShieldCheck size={22} weight="bold" />
             </div>
             <div>
-              <h2 className="text-xl font-black tracking-tight text-stone-900">Quyền truy cập</h2>
-              <p className="text-xs font-bold text-slate-400">Chỉnh vai trò và trạng thái tài khoản</p>
+              <h2 className="text-xl font-black tracking-tight text-stone-900">
+                Quyền truy cập
+              </h2>
+              <p className="text-xs font-bold text-slate-400">
+                Chỉnh vai trò và trạng thái tài khoản
+              </p>
             </div>
           </div>
 
           <div className="mt-8 space-y-5">
             <label className="block space-y-2">
-              <span className="text-xs font-black uppercase tracking-widest text-slate-400">Vai trò</span>
+              <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                Vai trò
+              </span>
               <select
                 value={selectedRole}
                 onChange={(event) => setSelectedRole(event.target.value)}
                 className="h-14 w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 text-sm font-black text-stone-900 outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
               >
                 {roleOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
                 ))}
               </select>
             </label>
 
             <label className="block space-y-2">
-              <span className="text-xs font-black uppercase tracking-widest text-slate-400">Trạng thái hoạt động</span>
+              <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                Trạng thái hoạt động
+              </span>
               <select
                 value={selectedStatus}
                 onChange={(event) => setSelectedStatus(event.target.value)}
                 className="h-14 w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 text-sm font-black text-stone-900 outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
               >
                 {statusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
                 ))}
               </select>
             </label>
@@ -309,32 +380,52 @@ export default function AdminUserDetailPage() {
       <section className="rounded-[2.5rem] border border-slate-200/60 bg-white p-8 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.04)]">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-black tracking-tight text-stone-900">Nhà hàng liên kết</h2>
-            <p className="mt-1 text-xs font-bold text-slate-400">Các nhà hàng thuộc tài khoản này</p>
+            <h2 className="text-xl font-black tracking-tight text-stone-900">
+              Nhà hàng liên kết
+            </h2>
+            <p className="mt-1 text-xs font-bold text-slate-400">
+              Các nhà hàng thuộc tài khoản này
+            </p>
           </div>
           <Storefront size={24} weight="bold" className="text-slate-300" />
         </div>
 
         {user.restaurants.length === 0 ? (
-          <div className="mt-8 flex h-40 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 text-sm font-bold text-slate-400">
+          <div className="mt-8 flex h-40 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-slate-50 text-sm font-bold text-slate-400">
             Chưa có nhà hàng liên kết
           </div>
         ) : (
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {user.restaurants.map((restaurant) => (
-              <div key={restaurant.id} className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-5">
+              <div
+                key={restaurant.id}
+                className="rounded-3xl border border-slate-100 bg-slate-50 p-5"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-black text-stone-900">{restaurant.name}</h3>
-                    <p className="mt-1 text-xs font-bold text-slate-400">{restaurant.cuisine}</p>
+                    <h3 className="text-base font-black text-stone-900">
+                      {restaurant.name}
+                    </h3>
+                    <p className="mt-1 text-xs font-bold text-slate-400">
+                      {restaurant.cuisine}
+                    </p>
                   </div>
-                  <span className={"rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest " + (restaurant.isOpen ? "bg-emerald-100 text-emerald-600" : "bg-slate-200 text-slate-500")}>
+                  <span
+                    className={
+                      "rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest " +
+                      (restaurant.isOpen
+                        ? "bg-emerald-100 text-emerald-600"
+                        : "bg-slate-200 text-slate-500")
+                    }
+                  >
                     {restaurant.isOpen ? "Đang mở" : "Tạm nghỉ"}
                   </span>
                 </div>
                 <div className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-500">
                   <MapPin size={15} weight="bold" />
-                  <span>{restaurant.address}, {restaurant.city}</span>
+                  <span>
+                    {restaurant.address}, {restaurant.city}
+                  </span>
                 </div>
               </div>
             ))}

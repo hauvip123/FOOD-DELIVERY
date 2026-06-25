@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -12,7 +11,7 @@ import {
   Star,
   ArrowRight,
 } from "@phosphor-icons/react";
-import { getMyRestaurants, RestaurantResponse } from "@/lib/restaurant";
+import { getMyRestaurants } from "@/lib/restaurant";
 import { useQuery } from "@tanstack/react-query";
 
 const FALLBACK_RESTAURANT_IMAGE =
@@ -94,7 +93,7 @@ export default function MyRestaurantsPage() {
               className="group overflow-hidden rounded-[2.5rem] bg-white p-6 shadow-sm ring-1 ring-black/5 transition-all hover:shadow-xl hover:shadow-orange-500/5"
             >
               <div className="flex gap-6">
-                <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-[2rem]">
+                <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-4xl">
                   <Image
                     src={getRestaurantImageSrc(res.imgage)}
                     alt={res.name}

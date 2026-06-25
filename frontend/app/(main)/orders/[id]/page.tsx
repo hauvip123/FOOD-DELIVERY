@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -23,10 +23,9 @@ import {
   confirmOrderReceived,
   createVnpayPaymentUrl,
   getOrderDetail,
-  OrderDetailResponse,
 } from "@/lib/order";
-import { getRestaurantById, RestaurantResponse } from "@/lib/restaurant";
-import { createReview, getOrderReview, ReviewResponse } from "@/lib/review";
+import { getRestaurantById } from "@/lib/restaurant";
+import { createReview, getOrderReview } from "@/lib/review";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -240,7 +239,7 @@ export default function OrderDetailPage({
   if (!isAuthLoading && !isAuthenticated) {
     return (
       <div className="flex min-h-[80dvh] items-center justify-center px-4 text-center">
-        <div className="max-w-md rounded-[2rem] bg-white p-8 shadow-[0_20px_50px_-25px_rgba(35,20,12,0.35)] ring-1 ring-black/5">
+        <div className="max-w-md rounded-4xl bg-white p-8 shadow-[0_20px_50px_-25px_rgba(35,20,12,0.35)] ring-1 ring-black/5">
           <h1 className="text-2xl font-black text-[#23140c]">
             Bạn cần đăng nhập
           </h1>
@@ -249,7 +248,7 @@ export default function OrderDetailPage({
           </p>
           <Link
             href="/login"
-            className="mt-7 inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
+            className="mt-7 inline-flex h-12 items-center justify-center rounded-2xl bg-[#23140c] px-6 text-sm font-black text-white transition-all hover:bg-[#ff6b00] active:scale-95"
           >
             Đăng nhập
           </Link>
@@ -311,18 +310,18 @@ export default function OrderDetailPage({
         </header>
 
         {errorMessage && (
-          <div className="mb-8 rounded-[1.5rem] bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
+          <div className="mb-8 rounded-3xl bg-red-50 px-5 py-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
             {errorMessage}
           </div>
         )}
 
         {isLoading ? (
           <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
-            <div className="h-96 animate-pulse rounded-[2rem] bg-white ring-1 ring-black/5" />
-            <div className="h-80 animate-pulse rounded-[2rem] bg-white ring-1 ring-black/5" />
+            <div className="h-96 animate-pulse rounded-4xl bg-white ring-1 ring-black/5" />
+            <div className="h-80 animate-pulse rounded-4xl bg-white ring-1 ring-black/5" />
           </div>
         ) : !detail || !order ? (
-          <div className="rounded-[2rem] border border-dashed border-[#23140c]/10 bg-white px-6 py-24 text-center">
+          <div className="rounded-4xl border border-dashed border-[#23140c]/10 bg-white px-6 py-24 text-center">
             <h2 className="text-2xl font-black text-[#23140c]">
               Không tìm thấy đơn hàng
             </h2>
@@ -333,7 +332,7 @@ export default function OrderDetailPage({
         ) : (
           <div className="grid gap-8 lg:grid-cols-[1fr_380px] lg:items-start">
             <section className="space-y-6">
-              <div className="rounded-[2rem] bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
+              <div className="rounded-4xl bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
                 <h2 className="mb-5 text-2xl font-black text-[#23140c]">
                   Tiến trình
                 </h2>
@@ -357,7 +356,7 @@ export default function OrderDetailPage({
                 </div>
               </div>
 
-              <div className="rounded-[2rem] bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
+              <div className="rounded-4xl bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
                 <h2 className="mb-5 text-2xl font-black text-[#23140c]">
                   Món đã đặt
                 </h2>
@@ -393,7 +392,7 @@ export default function OrderDetailPage({
                 </div>
               </div>
 
-              <div className="rounded-[2rem] bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
+              <div className="rounded-4xl bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
                 <h2 className="mb-5 text-2xl font-black text-[#23140c]">
                   Giao hàng
                 </h2>
@@ -438,7 +437,7 @@ export default function OrderDetailPage({
               </div>
 
               {order.orderStatus === "completed" && (
-                <div className="rounded-[2rem] bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
+                <div className="rounded-4xl bg-white p-5 shadow-[0_20px_50px_-28px_rgba(35,20,12,0.28)] ring-1 ring-black/5 sm:p-7">
                   <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-widest text-[#ff6b00]">
@@ -456,7 +455,7 @@ export default function OrderDetailPage({
                   </div>
 
                   {review ? (
-                    <div className="rounded-[1.5rem] bg-[#fffcf8] p-5 ring-1 ring-[#23140c]/5">
+                    <div className=" rounded-3xl bg-[#fffcf8] p-5 ring-1 ring-[#23140c]/5">
                       <div className="flex items-center gap-1 text-orange-500">
                         {Array.from({ length: 5 }).map((_, index) => (
                           <Star
@@ -488,7 +487,7 @@ export default function OrderDetailPage({
                               <button
                                 key={value}
                                 onClick={() => setReviewRating(value)}
-                                className="grid size-11 place-items-center rounded-[1rem] bg-[#fffcf8] text-orange-500 ring-1 ring-[#23140c]/5 transition-all hover:bg-orange-50 active:scale-95"
+                                className="grid size-11 place-items-center rounded-2xl bg-[#fffcf8] text-orange-500 ring-1 ring-[#23140c]/5 transition-all hover:bg-orange-50 active:scale-95"
                               >
                                 <Star
                                   size={24}
@@ -533,7 +532,7 @@ export default function OrderDetailPage({
                           })
                         }
                         disabled={reviewMutation.isPending}
-                        className="inline-flex h-12 items-center justify-center gap-2 rounded-[1rem] bg-[#ff6b00] px-6 text-sm font-black text-white transition-all hover:bg-[#e45f00] disabled:pointer-events-none disabled:opacity-50 active:scale-95"
+                        className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#ff6b00] px-6 text-sm font-black text-white transition-all hover:bg-[#e45f00] disabled:pointer-events-none disabled:opacity-50 active:scale-95"
                       >
                         <Star size={18} weight="fill" />
                         {reviewMutation.isPending
@@ -546,7 +545,7 @@ export default function OrderDetailPage({
               )}
             </section>
 
-            <aside className="rounded-[2rem] bg-[#23140c] p-6 text-white shadow-[0_24px_60px_-25px_rgba(35,20,12,0.5)] sm:p-8 lg:sticky lg:top-32">
+            <aside className="rounded-4xl bg-[#23140c] p-6 text-white shadow-[0_24px_60px_-25px_rgba(35,20,12,0.5)] sm:p-8 lg:sticky lg:top-32">
               <h2 className="mb-6 flex items-center gap-3 text-2xl font-black tracking-tight">
                 <Receipt size={28} weight="bold" className="text-orange-500" />
                 Thanh toán
@@ -582,7 +581,7 @@ export default function OrderDetailPage({
               </div>
 
               {canPayOnline && (
-                <div className="mt-8 rounded-[1.5rem] bg-white/5 p-4 ring-1 ring-white/10">
+                <div className="mt-8 rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
                   <div className="flex items-center gap-2 text-orange-400">
                     <Bank size={20} weight="bold" />
                     <p className="text-xs font-black uppercase tracking-widest">
@@ -598,7 +597,7 @@ export default function OrderDetailPage({
                   <button
                     onClick={handleConfirmPayment}
                     disabled={isConfirmingPayment}
-                    className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[1rem] bg-[#ff6b00] text-sm font-black text-white transition-all hover:bg-orange-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
+                    className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#ff6b00] text-sm font-black text-white transition-all hover:bg-orange-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
                   >
                     <ShieldCheck size={18} weight="bold" />
                     {isConfirmingPayment
@@ -614,7 +613,7 @@ export default function OrderDetailPage({
                 <button
                   onClick={() => confirmReceivedMutation.mutate()}
                   disabled={confirmReceivedMutation.isPending}
-                  className="mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[1rem] bg-emerald-500 text-sm font-black text-white transition-all hover:bg-emerald-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
+                  className="mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 text-sm font-black text-white transition-all hover:bg-emerald-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
                 >
                   <Package size={18} weight="bold" />
                   {confirmReceivedMutation.isPending
@@ -627,7 +626,7 @@ export default function OrderDetailPage({
                 <button
                   onClick={() => cancelMutation.mutate()}
                   disabled={cancelMutation.isPending}
-                  className="mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[1rem] bg-red-500 text-sm font-black text-white transition-all hover:bg-red-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
+                  className="mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-red-500 text-sm font-black text-white transition-all hover:bg-red-600 disabled:pointer-events-none disabled:opacity-50 active:scale-95"
                 >
                   <XCircle size={18} weight="bold" />
                   {cancelMutation.isPending ? "Đang hủy..." : "Hủy đơn"}
