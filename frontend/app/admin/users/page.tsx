@@ -1,20 +1,18 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   MagnifyingGlass,
   Funnel,
   DotsThreeVertical,
   UserCircle,
-  WarningCircle,
   Envelope,
   Phone,
   Calendar,
 } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAdminUsers, AdminUser } from "@/lib/admin";
-import { ApiError } from "@/lib/api";
+import { getAdminUsers } from "@/lib/admin";
 import RoleBadge from "@/components/admin/RoleBadge";
 import UserStatusBadge from "@/components/admin/UserStatusBadge";
 import Skeleton from "@/components/admin/Skeleton";
@@ -24,6 +22,7 @@ import {
   listContainerVariants,
   listItemVariants,
 } from "@/components/admin/type";
+import { useQuery } from "@tanstack/react-query";
 
 // --- Sub-components ---
 
@@ -34,34 +33,20 @@ const statusFilterOptions = [
 ];
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  useEffect(() => {
-    async function loadUsers() {
-      setIsLoading(true);
-      setErrorMessage("");
-      try {
-        const data = await getAdminUsers();
-        setUsers(data);
-      } catch (error) {
-        setErrorMessage(
-          error instanceof ApiError
-            ? error.message
-            : "Không thể tải danh sách người dùng.",
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadUsers();
-  }, []);
-
+  const usersQuery = useQuery({
+    queryKey: ["admin", "users"],
+    queryFn: getAdminUsers,
+    staleTime: 60 * 1000,
+  });
+  const isLoading = usersQuery.isLoading;
+  const errorMessage =
+    usersQuery.error instanceof Error ? usersQuery.error.message : "";
   const filteredUsers = useMemo(() => {
+    const users = usersQuery.data ?? [];
     return users.filter((user) => {
       const matchesSearch =
         user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,7 +56,7 @@ export default function AdminUsersPage() {
         statusFilter === "all" || user.status === statusFilter;
       return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [users, searchQuery, roleFilter, statusFilter]);
+  }, [usersQuery.data, searchQuery, roleFilter, statusFilter]);
 
   if (errorMessage) {
     return <ErrorMesage errorMessage={errorMessage} />;
@@ -134,7 +119,7 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
-          <div className="grid w-full grid-cols-3 gap-1 rounded-[1.25rem] border border-slate-200 bg-white p-1 shadow-sm md:w-[28rem]">
+          <div className="grid w-full grid-cols-3 gap-1 rounded-[1.25rem] border border-slate-200 bg-white p-1 shadow-sm md:w-md">
             {statusFilterOptions.map((option) => {
               const isSelected = statusFilter === option.value;
 

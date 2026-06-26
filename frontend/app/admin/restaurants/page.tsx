@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
+import Image from "next/image";
 import {
   Storefront,
   MagnifyingGlass,
@@ -11,8 +12,7 @@ import {
   Calendar,
 } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAdminRestaurants, AdminRestaurant } from "@/lib/admin";
-import { ApiError } from "@/lib/api";
+import { getAdminRestaurants } from "@/lib/admin";
 import RestaurantStatusBadge from "@/components/admin/RestaurantStatusBadge";
 import Skeleton from "@/components/admin/Skeleton";
 import ErrorMesage from "@/components/admin/ErrorMesage";
@@ -21,43 +21,33 @@ import {
   listContainerVariants,
   listItemVariants,
 } from "@/components/admin/type";
+import { useQuery } from "@tanstack/react-query";
 
 // --- Sub-components ---
 
 export default function AdminRestaurantsPage() {
-  const [restaurants, setRestaurants] = useState<AdminRestaurant[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  useEffect(() => {
-    async function loadRestaurants() {
-      setIsLoading(true);
-      setErrorMessage("");
-      try {
-        const data = await getAdminRestaurants();
-        setRestaurants(data);
-      } catch (error) {
-        setErrorMessage(
-          error instanceof ApiError
-            ? error.message
-            : "Không thể tải danh sách nhà hàng.",
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadRestaurants();
-  }, []);
+  const restaurantsQuery = useQuery({
+    queryKey: ["admin", "restaurants"],
+    queryFn: getAdminRestaurants,
+    staleTime: 60 * 1000,
+  });
+
+  const isLoading = restaurantsQuery.isLoading;
+  const errorMessage =
+    restaurantsQuery.error instanceof Error ? restaurantsQuery.error.message : "";
 
   const cities = useMemo(() => {
+    const restaurants = restaurantsQuery.data ?? [];
     const uniqueCities = Array.from(new Set(restaurants.map((r) => r.city)));
     return uniqueCities.sort();
-  }, [restaurants]);
+  }, [restaurantsQuery.data]);
 
   const filteredRestaurants = useMemo(() => {
+    const restaurants = restaurantsQuery.data ?? [];
     return restaurants.filter((res) => {
       const matchesSearch =
         res.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -68,7 +58,7 @@ export default function AdminRestaurantsPage() {
         (statusFilter === "open" ? res.isOpen : !res.isOpen);
       return matchesSearch && matchesCity && matchesStatus;
     });
-  }, [restaurants, searchQuery, cityFilter, statusFilter]);
+  }, [restaurantsQuery.data, searchQuery, cityFilter, statusFilter]);
 
   if (errorMessage) {
     return <ErrorMesage errorMessage={errorMessage} />;
@@ -179,9 +169,12 @@ export default function AdminRestaurantsPage() {
                 <div className="relative shrink-0">
                   <div className="size-24 rounded-4xl bg-orange-50 grid place-items-center text-orange-200 overflow-hidden ring-4 ring-slate-50 transition-transform group-hover:scale-105">
                     {res.imageUrl ? (
-                      <img
+                      <Image
                         src={res.imageUrl}
                         alt={res.name}
+                        width={96}
+                        height={96}
+                        unoptimized
                         className="size-full object-cover"
                       />
                     ) : (

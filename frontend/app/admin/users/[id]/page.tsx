@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -13,18 +13,16 @@ import {
   ShieldCheck,
   Storefront,
   UserCircle,
-  WarningCircle,
 } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import {
-  AdminUserDetail,
   getAdminUserDetail,
   updateAdminUserRole,
   updateAdminUserStatus,
 } from "@/lib/admin";
-import { ApiError } from "@/lib/api";
 import ErrorMesage from "@/components/admin/ErrorMesage";
 import DetailSkeleton from "@/components/admin/DetailSkeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const roleOptions = [
   { value: "customer", label: "Khách hàng" },
@@ -65,52 +63,29 @@ export default function AdminUserDetailPage() {
   const params = useParams<{ id: string }>();
   const userId = Number(params.id);
   const isInvalidUserId = Number.isNaN(userId);
-  const [user, setUser] = useState<AdminUserDetail | null>(null);
+  const queryClient = useQueryClient();
+  const [prevUserId, setPrevUserId] = useState<number | null>(null);
   const [selectedRole, setSelectedRole] = useState("customer");
   const [selectedStatus, setSelectedStatus] = useState("active");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
 
-  useEffect(() => {
-    let isCurrentRequest = true;
+  const userQuery = useQuery({
+    queryKey: ["admin", "user", userId],
+    queryFn: () => getAdminUserDetail(userId),
+    enabled: !isInvalidUserId,
+  });
 
-    async function loadUser() {
-      setIsLoading(true);
-      setErrorMessage("");
-      try {
-        const data = await getAdminUserDetail(userId);
-        if (isCurrentRequest) {
-          setUser(data);
-          setSelectedRole(data.role);
-          setSelectedStatus(data.status);
-        }
-      } catch (error) {
-        if (isCurrentRequest) {
-          setErrorMessage(
-            error instanceof ApiError
-              ? error.message
-              : "Không thể tải thông tin người dùng.",
-          );
-        }
-      } finally {
-        if (isCurrentRequest) {
-          setIsLoading(false);
-        }
-      }
-    }
+  const user = userQuery.data ?? null;
+  const isLoading = userQuery.isLoading;
 
-    if (isInvalidUserId) {
-      return;
-    }
+  const fetchError = userQuery.error instanceof Error
+    ? (userQuery.error.message || "Không thể tải thông tin người dùng.")
+    : "";
 
-    loadUser();
-
-    return () => {
-      isCurrentRequest = false;
-    };
-  }, [isInvalidUserId, userId]);
+  if (user && user.id !== prevUserId) {
+    setPrevUserId(user.id);
+    setSelectedRole(user.role);
+    setSelectedStatus(user.status);
+  }
 
   const hasChanges = useMemo(() => {
     return Boolean(
@@ -118,40 +93,40 @@ export default function AdminUserDetailPage() {
     );
   }, [selectedRole, selectedStatus, user]);
 
-  async function handleSave() {
-    if (!user || !hasChanges) return;
-
-    setIsSaving(true);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      let updatedUser = user;
-
-      if (selectedRole !== user.role) {
-        const roleUser = await updateAdminUserRole(user.id, selectedRole);
-        updatedUser = { ...updatedUser, ...roleUser };
+  const saveMutation = useMutation({
+    mutationFn: async ({
+      userId,
+      role,
+      status,
+      currentRole,
+      currentStatus,
+    }: {
+      userId: number;
+      role: string;
+      status: string;
+      currentRole: string;
+      currentStatus: string;
+    }) => {
+      let updatedUser = null;
+      if (role !== currentRole) {
+        updatedUser = await updateAdminUserRole(userId, role);
       }
-
-      if (selectedStatus !== updatedUser.status) {
-        const statusUser = await updateAdminUserStatus(user.id, selectedStatus);
-        updatedUser = { ...updatedUser, ...statusUser };
+      if (status !== currentStatus) {
+        const statusUser = await updateAdminUserStatus(userId, status);
+        updatedUser = updatedUser ? { ...updatedUser, ...statusUser } : statusUser;
       }
+      return updatedUser;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "user", userId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+    },
+  });
 
-      setUser(updatedUser);
-      setSelectedRole(updatedUser.role);
-      setSelectedStatus(updatedUser.status);
-      setSuccessMessage("Đã cập nhật tài khoản người dùng.");
-    } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : "Không thể cập nhật người dùng.",
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  }
+  const saveError = saveMutation.error instanceof Error
+    ? (saveMutation.error.message || "Không thể cập nhật người dùng.")
+    : "";
 
   if (isInvalidUserId) {
     return (
@@ -175,11 +150,11 @@ export default function AdminUserDetailPage() {
     return <DetailSkeleton />;
   }
 
-  if (errorMessage && !user) {
+  if (fetchError && !user) {
     return (
       <ErrorMesage
         title="Không mở được người dùng"
-        errorMessage={errorMessage}
+        errorMessage={fetchError}
         action={
           <Link
             href="/admin/users"
@@ -210,18 +185,27 @@ export default function AdminUserDetailPage() {
           Người dùng
         </Link>
         <div className="flex flex-wrap items-center gap-3">
-          {successMessage && (
+          {saveMutation.isSuccess && (
             <div className="flex h-12 items-center gap-2 rounded-2xl bg-emerald-50 px-4 text-xs font-black text-emerald-600 ring-1 ring-emerald-100">
               <CheckCircle size={16} weight="bold" />
-              {successMessage}
+              Đã cập nhật tài khoản người dùng.
             </div>
           )}
           <button
-            onClick={handleSave}
-            disabled={!hasChanges || isSaving}
+            onClick={() => {
+              if (!user) return;
+              saveMutation.mutate({
+                userId,
+                role: selectedRole,
+                status: selectedStatus,
+                currentRole: user.role,
+                currentStatus: user.status,
+              });
+            }}
+            disabled={!hasChanges || saveMutation.isPending}
             className="flex h-12 items-center justify-center rounded-2xl bg-stone-900 px-6 text-sm font-black text-white shadow-xl shadow-slate-200 transition-all active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
           >
-            {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+            {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
         </div>
       </div>
@@ -340,7 +324,10 @@ export default function AdminUserDetailPage() {
               </span>
               <select
                 value={selectedRole}
-                onChange={(event) => setSelectedRole(event.target.value)}
+                onChange={(event) => {
+                  setSelectedRole(event.target.value);
+                  saveMutation.reset();
+                }}
                 className="h-14 w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 text-sm font-black text-stone-900 outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
               >
                 {roleOptions.map((option) => (
@@ -357,7 +344,10 @@ export default function AdminUserDetailPage() {
               </span>
               <select
                 value={selectedStatus}
-                onChange={(event) => setSelectedStatus(event.target.value)}
+                onChange={(event) => {
+                  setSelectedStatus(event.target.value);
+                  saveMutation.reset();
+                }}
                 className="h-14 w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 text-sm font-black text-stone-900 outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
               >
                 {statusOptions.map((option) => (
@@ -368,9 +358,9 @@ export default function AdminUserDetailPage() {
               </select>
             </label>
 
-            {errorMessage && (
+            {saveError && (
               <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
-                {errorMessage}
+                {saveError}
               </div>
             )}
           </div>

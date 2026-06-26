@@ -1,26 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { ComponentType, ReactNode } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import {
   Buildings,
   Storefront,
   TrendUp,
   Users,
-  WarningCircle,
   DotsThree,
   MapPin,
   Calendar,
 } from "@phosphor-icons/react";
-import { ApiError } from "@/lib/api";
-import { AdminOverviewResponse, getAdminOverview } from "@/lib/admin";
+import { getAdminOverview } from "@/lib/admin";
 import { motion } from "framer-motion";
 import { containerVariants, formatDate } from "@/components/admin/type";
 import StatCard from "@/components/admin/StartCartd";
 import BentoCard from "@/components/admin/BentoCard";
 import StatBar from "@/components/admin/StatBar";
 import ErrorMesage from "@/components/admin/ErrorMesage";
+import { useQuery } from "@tanstack/react-query";
 
 function roleLabel(role: string) {
   const labels: Record<string, string> = {
@@ -34,43 +32,16 @@ function roleLabel(role: string) {
 // --- Main Page ---
 
 export default function AdminOverviewPage() {
-  const [overview, setOverview] = useState<AdminOverviewResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
-
-  useEffect(() => {
-    let isCurrentRequest = true;
-
-    async function loadOverview() {
-      setIsLoading(true);
-      setErrorMessage("");
-      try {
-        const data = await getAdminOverview();
-        if (isCurrentRequest) {
-          setOverview(data);
-        }
-      } catch (error) {
-        if (isCurrentRequest) {
-          setErrorMessage(
-            error instanceof ApiError
-              ? error.message
-              : "Không thể tải thống kê admin.",
-          );
-        }
-      } finally {
-        if (isCurrentRequest) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadOverview();
-
-    return () => {
-      isCurrentRequest = false;
-    };
-  }, []);
-
+  const overviewQuery = useQuery({
+    queryKey: ["admin", "overview"],
+    queryFn: getAdminOverview,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+  const overview = overviewQuery.data ?? null;
+  const errorMessage =
+    overviewQuery.error instanceof Error ? overviewQuery.error.message : "";
+  const isLoading = overviewQuery.isLoading;
   const maxRoleCount = useMemo(
     () =>
       Math.max(...(overview?.usersByRole.map((item) => item.count) ?? [1]), 1),
