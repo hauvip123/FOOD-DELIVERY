@@ -109,6 +109,24 @@ cd frontend
 npm install
 ```
 
+Start Redis with Docker Compose from the project root:
+
+```bash
+docker compose up -d redis
+docker compose ps redis
+docker compose exec redis redis-cli ping
+```
+
+The ping command should return `PONG`. Redis listens on
+`127.0.0.1:6379`, automatically restarts unless explicitly stopped, and
+stores its data in a Docker-managed volume.
+
+To use a different host port, set `REDIS_PORT` when starting the service:
+
+```bash
+REDIS_PORT=6380 docker compose up -d redis
+```
+
 Configure backend in backend/.env:
 
 ```env
@@ -131,6 +149,9 @@ SMTP_FROM=HungerDash <your-gmail-address@gmail.com>
 SMTP_TIMEOUT_MS=15000
 RESEND_API_KEY=your-resend-api-key
 RESEND_FROM=HungerDash <onboarding@resend.dev>
+REDIS_URL=redis://localhost:6379
+REDIS_KEY_PREFIX=hungerdash
+REDIS_CACHE_ENABLED=true
 ```
 
 Configure frontend in frontend/.env.local:
@@ -174,6 +195,30 @@ Backend URL:
 
 ```text
 http://localhost:3000
+```
+
+Stop Redis without deleting its data:
+
+```bash
+docker compose stop redis
+```
+
+Start it again:
+
+```bash
+docker compose start redis
+```
+
+Remove the Redis container while preserving its data:
+
+```bash
+docker compose down
+```
+
+Remove the container and Redis data only when a full local reset is needed:
+
+```bash
+docker compose down --volumes
 ```
 
 ## Configuration Notes
