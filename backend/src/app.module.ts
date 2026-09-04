@@ -12,21 +12,38 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ReviewModule } from './modules/review/review.module';
 import { ChatsModule } from './modules/chats/chats.module';
+import { RedisModule } from './common/redis/redis.module';
 @Module({
-  imports: [ConfigModule.forRoot({
-    isGlobal: true
-  }), TypeOrmModule.forRoot({
-    type: 'mysql',
-    host: process.env.MYSQLHOST,
-    port: Number(process.env.MYSQLPORT),
-    username: process.env.MYSQLUSER,
-    password: process.env.MYSQLPASSWORD,
-    database: process.env.MYSQLDATABASE,
-    ssl: process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: true } : undefined,
-    autoLoadEntities: true,
-    synchronize: process.env.TYPEORM_SYNC === "true",
-  }), RestaurantsModule, CategoriesModule, DishesModule, CartsModule, OrdersModule, UsersModule, AuthModule, ReviewModule, ChatsModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: process.env.MYSQLHOST,
+      port: Number(process.env.MYSQLPORT),
+      username: process.env.MYSQLUSER,
+      password: process.env.MYSQLPASSWORD,
+      database: process.env.MYSQLDATABASE,
+      ssl:
+        process.env.MYSQL_SSL === 'true'
+          ? { rejectUnauthorized: true }
+          : undefined,
+      autoLoadEntities: true,
+      synchronize: process.env.TYPEORM_SYNC === 'true',
+    }),
+    RedisModule,
+    RestaurantsModule,
+    CategoriesModule,
+    DishesModule,
+    CartsModule,
+    OrdersModule,
+    UsersModule,
+    AuthModule,
+    ReviewModule,
+    ChatsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
