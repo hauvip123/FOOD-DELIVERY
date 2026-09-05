@@ -7,6 +7,12 @@ import { Repository } from 'typeorm';
 import { CreateDishDto } from './dto/create-dish.dto';
 import { UpdateDishDto } from './dto/update-dish.dto';
 import { FindDishesQueryDto } from './dto/find-dishes-query.dto';
+import { RedisService } from 'src/common/redis/redis.service';
+import {
+  CACHE_KEYS,
+  CACHE_TTL_SECONDS,
+} from 'src/common/redis/redis.constants';
+import { hashDishListQuery } from 'src/common/redis/cache-key.util';
 
 @Injectable()
 export class DishesService {
@@ -16,6 +22,7 @@ export class DishesService {
     private readonly categoriesRepository: Repository<Categories>,
     @InjectRepository(Restaurant)
     private readonly restaurantRepository: Repository<Restaurant>,
+    private readonly redisService: RedisService,
   ) {}
 
   private async findCategoryById(id: number) {
@@ -26,6 +33,7 @@ export class DishesService {
 
     return category;
   }
+
   private async findRestaurantById(id: number) {
     const restaurant = await this.restaurantRepository.findOneBy({ id });
     if (!restaurant) {
@@ -42,6 +50,10 @@ export class DishesService {
     const dish = this.dishRepository.create(createDish);
     const savedDish = await this.dishRepository.save(dish);
 
+    await this.invalidateDishCache({
+      restaurantIds: [savedDish.restaurantId],
+    });
+
     return {
       statusCode: 201,
       message: 'Create successfully',
@@ -57,6 +69,23 @@ export class DishesService {
     const sortOrder = (query.sortOrder ?? 'DESC').toUpperCase() as
       | 'ASC'
       | 'DESC';
+
+    const cacheKey = CACHE_KEYS.dishList(hashDishListQuery(query));
+    const cached = await this.redisService.get<{
+      statusCode: number;
+      message: string;
+      data: Dish[];
+      meta: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
 
     const dishQuery = this.dishRepository
       .createQueryBuilder('dish')
@@ -95,7 +124,7 @@ export class DishesService {
       .take(limit)
       .getManyAndCount();
 
-    return {
+    const response = {
       statusCode: 200,
       message: 'Get all dishes successfully',
       data: dishes,
@@ -106,37 +135,83 @@ export class DishesService {
         totalPages: Math.ceil(total / limit),
       },
     };
+
+    await this.redisService.set(cacheKey, response, CACHE_TTL_SECONDS.dishList);
+
+    return response;
   }
 
   async getDishById(id: number) {
+    const cacheKey = CACHE_KEYS.dishDetail(id);
+    const cached = await this.redisService.get<{
+      statusCode: number;
+      message: string;
+      data: Dish;
+    }>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     const dish = await this.dishRepository.findOneBy({ id });
     if (!dish) {
       throw new NotFoundException('Dish not found');
     }
 
-    return {
+    const response = {
       statusCode: 200,
       message: 'Get dish successfully',
       data: dish,
     };
+
+    await this.redisService.set(
+      cacheKey,
+      response,
+      CACHE_TTL_SECONDS.dishDetail,
+    );
+
+    return response;
   }
 
   async getDishByRestaurantId(id: number) {
+    const cacheKey = CACHE_KEYS.dishesByRestaurant(id);
+    const cached = await this.redisService.get<{
+      statusCode: number;
+      message: string;
+      data: Dish[];
+    }>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     await this.findRestaurantById(id);
     const dishes = await this.dishRepository.find({
       where: { restaurantId: id },
     });
-    return {
+
+    const response = {
       statusCode: 200,
       message: 'Get dish by restaurant successfully',
       data: dishes,
     };
+
+    await this.redisService.set(
+      cacheKey,
+      response,
+      CACHE_TTL_SECONDS.dishesByRestaurant,
+    );
+
+    return response;
   }
+
   async updateDish(id: number, updateDish: UpdateDishDto) {
     const dish = await this.dishRepository.findOneBy({ id });
     if (!dish) {
       throw new NotFoundException('Dish not found');
     }
+
+    const previousRestaurantId = dish.restaurantId;
 
     if (updateDish.categoryId) {
       await this.findCategoryById(updateDish.categoryId);
@@ -148,6 +223,16 @@ export class DishesService {
 
     Object.assign(dish, updateDish);
     const updatedDish = await this.dishRepository.save(dish);
+
+    const restaurantIds = [previousRestaurantId];
+    if (updatedDish.restaurantId !== previousRestaurantId) {
+      restaurantIds.push(updatedDish.restaurantId);
+    }
+
+    await this.invalidateDishCache({
+      dishId: updatedDish.id,
+      restaurantIds,
+    });
 
     return {
       statusCode: 200,
@@ -161,11 +246,33 @@ export class DishesService {
     if (!dish) {
       throw new NotFoundException('Dish not found');
     }
+
     await this.dishRepository.remove(dish);
+    await this.invalidateDishCache({
+      dishId: id,
+      restaurantIds: [dish.restaurantId],
+    });
 
     return {
       statusCode: 200,
       message: 'Delete successfully',
     };
+  }
+
+  private async invalidateDishCache(options: {
+    dishId?: number;
+    restaurantIds?: number[];
+  }) {
+    const keys = [
+      options.dishId ? CACHE_KEYS.dishDetail(options.dishId) : undefined,
+      ...(options.restaurantIds ?? []).map((restaurantId) =>
+        CACHE_KEYS.dishesByRestaurant(restaurantId),
+      ),
+    ].filter((key): key is string => Boolean(key));
+
+    await Promise.all([
+      this.redisService.deleteByPattern(CACHE_KEYS.dishLists),
+      keys.length > 0 ? this.redisService.delete(...keys) : Promise.resolve(),
+    ]);
   }
 }

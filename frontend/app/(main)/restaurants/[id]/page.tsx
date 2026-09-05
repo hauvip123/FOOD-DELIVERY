@@ -88,6 +88,8 @@ export default function RestaurantDetailPage({
   const [activeCategoryId, setActiveCategoryId] = useState<number | "all">(
     "all",
   );
+  const [dishSearch, setDishSearch] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const {
@@ -168,11 +170,26 @@ export default function RestaurantDetailPage({
   }, [categoryNameById, dishes]);
 
   const filteredDishes = useMemo(() => {
-    if (activeCategoryId === "all") {
-      return dishes;
+    const byCategory =
+      activeCategoryId === "all"
+        ? dishes
+        : dishes.filter((dish) => dish.categoryId === activeCategoryId);
+    const keyword = dishSearch.trim().toLowerCase();
+    if (!keyword) {
+      return byCategory;
     }
-    return dishes.filter((dish) => dish.categoryId === activeCategoryId);
-  }, [activeCategoryId, dishes]);
+    return byCategory.filter((dish) => {
+      const haystack = [
+        dish.name,
+        dish.description,
+        categoryNameById.get(dish.categoryId),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(keyword);
+    });
+  }, [activeCategoryId, categoryNameById, dishSearch, dishes]);
 
   const filteredReviews = useMemo(() => {
     if (reviewRatingFilter === "all") {
@@ -188,6 +205,16 @@ export default function RestaurantDetailPage({
   const getDishQuantity = (dishId: number) => {
     return items.find((item) => item.id === dishId)?.quantity || 0;
   };
+
+  async function copyRestaurantLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -237,51 +264,49 @@ export default function RestaurantDetailPage({
 
   return (
     <div className="relative min-h-screen bg-[#fffcf8]">
-      <section className="relative min-h-[460px] w-full overflow-hidden">
+      <section className="relative h-[280px] w-full overflow-hidden sm:h-[320px]">
         <img
           src={buildRestaurantImage(restaurant)}
           alt={restaurant.name}
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#23140c] via-[#23140c]/55 to-[#23140c]/10" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#23140c] via-[#23140c]/50 to-[#23140c]/15" />
 
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1400px] px-4 pb-12 pt-28 sm:px-6 lg:px-10">
+        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1400px] px-4 pb-8 pt-16 sm:px-6 lg:px-10">
           <Link
             href="/restaurants"
-            className="mb-8 inline-flex items-center gap-2 text-sm font-bold text-white/80 transition-colors hover:text-white"
+            className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-white/80 hover:text-white"
           >
             <ArrowLeft size={18} weight="bold" />
-            Trở về nhà hàng
+            Trở về danh sách
           </Link>
 
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="min-w-0 space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <div
-                  className={`rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-white ${restaurant.isOpen ? "bg-emerald-600" : "bg-[#704322]"}`}
+                <span
+                  className={`rounded-full px-3 py-1 text-[11px] font-bold text-white ${restaurant.isOpen ? "bg-[#ff6b00]" : "bg-[#23140c]/80"}`}
                 >
-                  {restaurant.isOpen ? "Đang hoạt động" : "Tạm nghỉ"}
-                </div>
-                <div className="flex items-center gap-1 text-sm font-bold text-orange-400">
-                  <Star size={18} weight="fill" />
-                  <span className="text-white">
-                    {formatRating(restaurant.ratingAverage)}
-                  </span>
-                  <span className="text-white/60">đánh giá</span>
-                </div>
+                  {restaurant.isOpen ? "Đang mở" : "Tạm nghỉ"}
+                </span>
+                <span className="flex items-center gap-1 text-sm font-bold text-white">
+                  <Star size={16} weight="fill" className="text-[#ff6b00]" />
+                  {Number(restaurant.ratingAverage) > 0
+                    ? formatRating(restaurant.ratingAverage)
+                    : "Mới"}
+                </span>
               </div>
-
-              <h1 className="max-w-4xl text-5xl font-black tracking-tight text-white sm:text-7xl">
+              <h1 className="truncate text-3xl font-black tracking-tight text-white sm:text-4xl">
                 {restaurant.name}
               </h1>
-
-              <p className="max-w-3xl text-lg font-medium leading-relaxed text-white/75">
-                {restaurant.cuisine} •{" "}
-                {restaurant.description || restaurant.address}
+              <p className="line-clamp-1 text-sm font-medium text-white/75">
+                {[restaurant.cuisine, restaurant.city]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <FavoriteRestaurantButton
                 restaurantId={restaurant.id}
                 initialIsFavorite={isAuthenticated && isFavorite}
@@ -291,68 +316,70 @@ export default function RestaurantDetailPage({
               />
               <Link
                 href={`/chat?restaurantId=${restaurant.id}`}
-                className="flex size-14 items-center justify-center rounded-2xl bg-white/10 text-white transition-all hover:bg-white/20 active:scale-90"
+                className="flex size-12 items-center justify-center rounded-2xl bg-white/15 text-white hover:bg-white/25"
                 title="Chat với nhà hàng"
               >
-                <ChatCircleText size={28} weight="bold" />
+                <ChatCircleText size={24} weight="bold" />
               </Link>
-              <button className="flex size-14 items-center justify-center rounded-2xl bg-white/10 text-white transition-all hover:bg-white/20 active:scale-90">
-                <ShareNetwork size={28} weight="bold" />
+              <button
+                type="button"
+                onClick={() => void copyRestaurantLink()}
+                className="flex size-12 items-center justify-center rounded-2xl bg-white/15 text-white hover:bg-white/25"
+                title={copied ? "Đã sao chép" : "Sao chép liên kết"}
+              >
+                <ShareNetwork size={24} weight="bold" />
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="mx-auto max-w-[1400px] -translate-y-1/2 px-4 sm:px-6 lg:px-10">
-        <div className="grid grid-cols-1 gap-4 rounded-[2.5rem] bg-white p-6 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.1)] ring-1 ring-black/5 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex items-center gap-4 px-2 lg:px-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
-              <Clock size={24} weight="bold" />
+      <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:px-10">
+        {copied ? (
+          <p className="mb-3 text-sm font-bold text-[#ff6b00]">
+            Đã sao chép liên kết nhà hàng.
+          </p>
+        ) : null}
+        <div className="grid grid-cols-1 gap-3 rounded-[1.5rem] bg-white p-4 ring-1 ring-[#23140c]/6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex items-center gap-3 px-2">
+            <div className="grid size-10 place-items-center rounded-xl bg-orange-50 text-[#ff6b00]">
+              <Clock size={20} weight="bold" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#23140c]/40">
-                Giờ mở cửa
-              </p>
+              <p className="text-[11px] font-bold text-[#704322]/60">Giờ mở cửa</p>
               <p className="text-sm font-black text-[#23140c]">
-                {restaurant.openTime} - {restaurant.closeTime}
+                {restaurant.openTime}–{restaurant.closeTime}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4 px-2 lg:border-l lg:border-[#23140c]/5 lg:px-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500">
-              <Truck size={24} weight="bold" />
+          <div className="flex items-center gap-3 px-2">
+            <div className="grid size-10 place-items-center rounded-xl bg-orange-50 text-[#ff6b00]">
+              <Truck size={20} weight="bold" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#23140c]/40">
-                Phí giao
-              </p>
+              <p className="text-[11px] font-bold text-[#704322]/60">Phí giao</p>
               <p className="text-sm font-black text-[#23140c]">
                 {formatDeliveryFee(restaurant.deliveryFee)}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4 px-2 lg:border-l lg:border-[#23140c]/5 lg:px-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-500">
-              <MapPin size={24} weight="bold" />
+          <div className="flex min-w-0 items-center gap-3 px-2">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-[#ff6b00]">
+              <MapPin size={20} weight="bold" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#23140c]/40">
-                Địa chỉ
-              </p>
+              <p className="text-[11px] font-bold text-[#704322]/60">Địa chỉ</p>
               <p className="truncate text-sm font-black text-[#23140c]">
                 {restaurant.address}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4 px-2 lg:border-l lg:border-[#23140c]/5 lg:px-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
-              <Storefront size={24} weight="bold" />
+          <div className="flex items-center gap-3 px-2">
+            <div className="grid size-10 place-items-center rounded-xl bg-orange-50 text-[#ff6b00]">
+              <Storefront size={20} weight="bold" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#23140c]/40">
-                Thành phố
-              </p>
+              <p className="text-[11px] font-bold text-[#704322]/60">Thành phố</p>
               <p className="text-sm font-black text-[#23140c]">
                 {restaurant.city}
               </p>
@@ -365,9 +392,18 @@ export default function RestaurantDetailPage({
         <div className="flex flex-col gap-10 lg:flex-row">
           <aside className="w-full lg:sticky lg:top-28 lg:h-fit lg:w-72">
             <div className="flex flex-col gap-2">
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-4">
                 <h3 className="text-lg font-black text-[#23140c]">Thực đơn</h3>
-                <MagnifyingGlass size={20} className="text-[#23140c]/40" />
+                <label className="mt-3 flex h-11 items-center gap-2 rounded-2xl bg-white px-3 ring-1 ring-[#23140c]/8">
+                  <MagnifyingGlass size={16} className="text-[#704322]/50" />
+                  <input
+                    type="search"
+                    value={dishSearch}
+                    onChange={(event) => setDishSearch(event.target.value)}
+                    placeholder="Tìm món"
+                    className="w-full bg-transparent text-sm font-semibold text-[#23140c] outline-none placeholder:text-[#704322]/40"
+                  />
+                </label>
               </div>
               <div className="flex flex-row gap-2 overflow-x-auto pb-4 lg:flex-col lg:overflow-visible">
                 <button
@@ -431,11 +467,11 @@ export default function RestaurantDetailPage({
                         transition={{ delay: idx * 0.04 }}
                         className={`group flex gap-4 rounded-4xl bg-white p-4 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] ring-1 ring-black/5 transition-all hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] ${dish.isAvailable ? "" : "opacity-60 grayscale-[0.25]"}`}
                       >
-                        <div className="relative h-28 w-28 flex-shrink-0 overflow-hidden rounded-2xl bg-[#f1e7dc]">
+                        <div className="relative h-[112px] w-[112px] shrink-0 overflow-hidden rounded-2xl bg-[#fff7ed]">
                           <img
                             src={dishImage}
                             alt={dish.name}
-                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            className="absolute inset-0 size-full object-cover"
                             loading="lazy"
                           />
                           {!dish.isAvailable && (
@@ -537,7 +573,9 @@ export default function RestaurantDetailPage({
             <div className="flex w-fit items-center gap-2 rounded-2xl bg-orange-50 px-4 py-3 text-orange-500 ring-1 ring-orange-100">
               <Star size={22} weight="fill" />
               <span className="text-lg font-black text-[#23140c]">
-                {formatRating(restaurant.ratingAverage)}
+                {Number(restaurant.ratingAverage) > 0
+                  ? formatRating(restaurant.ratingAverage)
+                  : "Mới"}
               </span>
               <span className="text-xs font-black uppercase tracking-widest text-[#704322]/40">
                 {reviews.length} lượt

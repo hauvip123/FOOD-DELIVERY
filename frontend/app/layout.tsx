@@ -30,7 +30,7 @@ export default function RootLayout({
       lang="vi"
       className={[geistSans.variable, geistMono.variable, "h-full antialiased"].join(" ")}
     >
-      <body className="min-h-full bg-[#fff7ed] text-[#23140c]">
+      <body className="min-h-full bg-[#fff7ed] font-sans text-[#23140c]">
         <Providers>
           <AuthProvider>
           <CartProvider>

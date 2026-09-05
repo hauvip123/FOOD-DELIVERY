@@ -498,26 +498,21 @@ export default function RestaurantsPage() {
                         stiffness: 140,
                         damping: 22,
                       }}
-                      className={`group grid overflow-hidden rounded-[1.75rem] bg-white p-3 shadow-[0_18px_45px_-30px_rgba(35,20,12,0.42)] ring-1 ring-[#23140c]/5 transition-all hover:-translate-y-1 hover:shadow-[0_24px_55px_-30px_rgba(255,107,0,0.32)] md:grid-cols-[260px_minmax(0,1fr)] md:p-4 ${restaurant.isOpen ? "" : "opacity-75 grayscale-[0.25]"}`}
+                      className={`flex flex-col overflow-hidden rounded-[1.5rem] bg-white ring-1 ring-[#23140c]/6 md:flex-row ${restaurant.isOpen ? "" : "opacity-70"}`}
                     >
-                      <div className="relative h-60 overflow-hidden rounded-[1.35rem] bg-[#f1e7dc] md:h-full md:min-h-[230px]">
+                      <div className="relative h-44 w-full shrink-0 overflow-hidden bg-[#fff7ed] md:h-[176px] md:w-[220px]">
                         <img
                           src={buildImageUrl(restaurant)}
                           alt={restaurant.name}
-                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          className="absolute inset-0 size-full object-cover"
                           loading="lazy"
                         />
-                        <div className="absolute left-4 top-4 flex max-w-[calc(100%-5rem)] flex-wrap gap-2">
-                          <span
-                            className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-sm ${restaurant.isOpen ? "bg-emerald-600" : "bg-[#704322]"}`}
-                          >
-                            {restaurant.isOpen ? "Đang mở" : "Tạm nghỉ"}
-                          </span>
-                          <span className="max-w-36 truncate rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#23140c] backdrop-blur">
-                            {restaurant.city}
-                          </span>
-                        </div>
-                        <div className="absolute right-4 top-4">
+                        <span
+                          className={`absolute top-3 left-3 rounded-full px-2.5 py-1 text-[11px] font-bold text-white ${restaurant.isOpen ? "bg-[#ff6b00]" : "bg-[#23140c]/70"}`}
+                        >
+                          {restaurant.isOpen ? "Đang mở" : "Tạm nghỉ"}
+                        </span>
+                        <div className="absolute top-3 right-3">
                           <FavoriteRestaurantButton
                             restaurantId={restaurant.id}
                             initialIsFavorite={
@@ -530,76 +525,54 @@ export default function RestaurantsPage() {
                         </div>
                       </div>
 
-                      <div className="flex min-w-0 flex-col p-2 pt-5 md:p-5">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 px-5 py-4">
+                        <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="line-clamp-2 text-2xl font-black tracking-tight text-[#23140c] sm:text-3xl">
+                            <h3 className="truncate text-xl font-black tracking-tight text-[#23140c]">
                               {restaurant.name}
                             </h3>
-                            <p className="mt-2 line-clamp-2 text-sm font-bold leading-relaxed text-[#704322]/65">
-                              {restaurant.cuisine}
+                            <p className="mt-1 truncate text-sm font-medium text-[#704322]/75">
+                              {[restaurant.cuisine, restaurant.city]
+                                .filter(Boolean)
+                                .join(" · ")}
                             </p>
                           </div>
-                          <div className="flex w-fit shrink-0 items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-black text-[#ff6b00]">
-                            <Star size={17} weight="fill" />
-                            {formatRating(restaurant.ratingAverage)}
-                          </div>
+                          <p className="flex shrink-0 items-center gap-1 text-sm font-black text-[#ff6b00]">
+                            <Star size={15} weight="fill" />
+                            {Number(restaurant.ratingAverage) > 0
+                              ? formatRating(restaurant.ratingAverage)
+                              : "Mới"}
+                          </p>
                         </div>
 
-                        <p className="mt-4 line-clamp-2 text-sm font-medium leading-relaxed text-[#704322]/55 md:max-w-2xl">
-                          {restaurant.description || restaurant.address}
-                        </p>
-
-                        <div className="mt-5 grid gap-2 text-xs font-black text-[#704322] sm:grid-cols-2">
-                          <div className="flex min-w-0 items-center gap-2 rounded-2xl bg-[#fff7ed] px-3 py-2.5">
-                            <MapPin
-                              size={16}
-                              weight="bold"
-                              className="shrink-0"
-                            />
+                        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold text-[#704322]/80">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Clock size={15} weight="bold" />
+                            {restaurant.openTime}–{restaurant.closeTime}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <Truck size={15} weight="bold" />
+                            {formatDeliveryFee(restaurant.deliveryFee)}
+                          </span>
+                          <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+                            <MapPin size={15} weight="bold" />
                             <span className="truncate">
                               {restaurant.address}
                             </span>
-                          </div>
-                          <div className="flex min-w-0 items-center gap-2 rounded-2xl bg-[#fff7ed] px-3 py-2.5">
-                            <Clock
-                              size={16}
-                              weight="bold"
-                              className="shrink-0"
-                            />
-                            <span className="truncate">
-                              {restaurant.openTime} - {restaurant.closeTime}
-                            </span>
-                          </div>
-                          <div className="flex min-w-0 items-center gap-2 rounded-2xl bg-orange-50 px-3 py-2.5 text-[#ff6b00] sm:col-span-2">
-                            <Truck
-                              size={16}
-                              weight="bold"
-                              className="shrink-0"
-                            />
-                            <span className="truncate">
-                              Phí giao{" "}
-                              {formatDeliveryFee(restaurant.deliveryFee)}
-                            </span>
-                          </div>
-                        </div>
+                          </span>
+                        </p>
 
-                        <div className="mt-5 flex flex-col gap-3 border-t border-[#23140c]/5 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                          <p className="text-xs font-bold leading-relaxed text-[#704322]/50">
-                            {restaurant.isOpen
-                              ? "Sẵn sàng nhận đơn hôm nay"
-                              : "Nhà hàng đang tạm nghỉ"}
-                          </p>
+                        <div className="flex justify-end">
                           <Link
                             href={`/restaurants/${restaurant.id}`}
-                            className={`inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black transition-all active:scale-95 ${restaurant.isOpen ? "bg-[#23140c] text-white hover:bg-[#ff6b00]" : "pointer-events-none bg-[#23140c]/5 text-[#704322]/40"}`}
+                            className={`inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-black ${restaurant.isOpen ? "bg-[#ff6b00] text-white hover:bg-[#e45f00]" : "pointer-events-none bg-[#23140c]/8 text-[#704322]/40"}`}
                           >
                             {restaurant.isOpen
                               ? "Xem thực đơn"
                               : "Đang tạm nghỉ"}
-                            {restaurant.isOpen && (
-                              <ArrowRight size={18} weight="bold" />
-                            )}
+                            {restaurant.isOpen ? (
+                              <ArrowRight size={16} weight="bold" />
+                            ) : null}
                           </Link>
                         </div>
                       </div>

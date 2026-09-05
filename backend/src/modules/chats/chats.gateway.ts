@@ -8,6 +8,7 @@ import {
 } from '@nestjs/websockets';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
+import { getCorsOrigins } from 'src/common/cors.origins';
 import { ChatsService } from './chats.service';
 
 type SocketUser = {
@@ -27,7 +28,7 @@ type SendMessagePayload = {
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3001',
+    origin: getCorsOrigins(),
     credentials: true,
   },
 })

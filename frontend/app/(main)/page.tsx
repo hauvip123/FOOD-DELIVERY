@@ -58,7 +58,11 @@ export default function Home() {
           {errorMessage} Đang hiển thị dữ liệu mẫu.
         </div>
       )}
-      <CategoriesSection categories={categories} isLoading={isLoading} />
+      <CategoriesSection
+        categories={categories}
+        dishes={dishes}
+        isLoading={isLoading}
+      />
       <RecentDishes dishes={recentDishes} isLoading={isLoading} />
       <FeaturedRestaurants restaurants={restaurants} isLoading={isLoading} />
       <PopularDishes dishes={popularDishes} isLoading={isLoading} />

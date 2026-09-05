@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -10,12 +11,12 @@ import {
   CaretRight,
   Clock,
   ForkKnife,
-  MagnifyingGlass,
   Minus,
   Plus,
   Storefront,
   WarningCircle,
 } from "@phosphor-icons/react";
+import { MenuFilterBar } from "@/components/menu/MenuFilterBar";
 import { getDishes, DishResponse } from "@/lib/dish";
 import { getAllCategories } from "@/lib/category";
 import { useCart } from "@/contexts/CartContext";
@@ -74,10 +75,13 @@ const itemVariants: Variants = {
 };
 
 export default function MenuPage() {
+  const searchParams = useSearchParams();
   const [page, setPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(
+    () => searchParams.get("search") ?? "",
+  );
   const [activeCategoryName, setActiveCategoryName] = useState<string | "all">(
-    "all",
+    () => searchParams.get("category") ?? "all",
   );
   const debouncedSearch = useDebouncedValue(searchQuery);
 
@@ -181,52 +185,17 @@ export default function MenuPage() {
           </div>
         </header>
 
-        <div className="sticky top-24 z-20 mb-10 space-y-4 rounded-4xl border border-white/70 bg-white/85 p-4 shadow-[0_20px_45px_-28px_rgba(35,20,12,0.2)] backdrop-blur-xl">
-          <div className="relative">
-            <MagnifyingGlass className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#704322]/35" />
-            <input
-              type="text"
-              placeholder="Tìm món ăn hoặc nhà hàng..."
-              value={searchQuery}
-              onChange={(event) =>
-                resetToFirstPage(() => setSearchQuery(event.target.value))
-              }
-              className="h-14 w-full rounded-[1.25rem] border border-[#23140c]/5 bg-[#fffaf4] pl-13 pr-5 text-sm font-bold text-[#23140c] outline-none transition-all focus:border-orange-500 focus:bg-white focus:ring-4 focus:ring-orange-500/10"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <button
-              onClick={() =>
-                resetToFirstPage(() => setActiveCategoryName("all"))
-              }
-              className={
-                "whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-black transition-all active:scale-[0.98] " +
-                (activeCategoryName === "all"
-                  ? "bg-[#23140c] text-white shadow-lg shadow-[#23140c]/10"
-                  : "bg-[#fffaf4] text-[#704322]/65 hover:bg-orange-50 hover:text-orange-600")
-              }
-            >
-              Tất cả
-            </button>
-            {categoryNames.map((categoryName) => (
-              <button
-                key={categoryName}
-                onClick={() =>
-                  resetToFirstPage(() => setActiveCategoryName(categoryName))
-                }
-                className={
-                  "whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-black transition-all active:scale-[0.98] " +
-                  (activeCategoryName === categoryName
-                    ? "bg-[#23140c] text-white shadow-lg shadow-[#23140c]/10"
-                    : "bg-[#fffaf4] text-[#704322]/65 hover:bg-orange-50 hover:text-orange-600")
-                }
-              >
-                {categoryName}
-              </button>
-            ))}
-          </div>
-        </div>
+        <MenuFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={(value) =>
+            resetToFirstPage(() => setSearchQuery(value))
+          }
+          categoryNames={categoryNames}
+          activeCategoryName={activeCategoryName}
+          onCategoryChange={(value) =>
+            resetToFirstPage(() => setActiveCategoryName(value))
+          }
+        />
 
         {isLoading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
