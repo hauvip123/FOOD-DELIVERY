@@ -1,68 +1,87 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 import type { CategoryResponse } from "@/lib/category";
-
-function buildCategories(categories: CategoryResponse[]) {
-  return Array.from(new Set(categories.map((category) => category.name))).slice(0, 12);
-}
+import type { DishResponse } from "@/lib/dish";
 
 type CategoriesSectionProps = {
   categories?: CategoryResponse[];
+  dishes?: DishResponse[];
   isLoading?: boolean;
 };
 
-export function CategoriesSection({ categories = [], isLoading = false }: CategoriesSectionProps) {
-  const displayCategories = buildCategories(categories);
+function uniqueCategoryNames(categories: CategoryResponse[]) {
+  return Array.from(new Set(categories.map((category) => category.name)));
+}
+
+export function CategoriesSection({
+  categories = [],
+  dishes = [],
+  isLoading = false,
+}: CategoriesSectionProps) {
+  const displayCategories = uniqueCategoryNames(categories);
+  const dishCountByCategory = dishes.reduce<Record<string, number>>(
+    (counts, dish) => {
+      const name = dish.category?.name;
+      if (!name) {
+        return counts;
+      }
+      counts[name] = (counts[name] ?? 0) + 1;
+      return counts;
+    },
+    {},
+  );
 
   return (
-    <section className="bg-white py-10">
+    <section className="bg-white py-12">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-10">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-black tracking-tight text-[#23140c]">Khám phá danh mục</h2>
-          <div className="h-px flex-1 bg-orange-100 ml-8 hidden md:block" />
+        <div className="mb-6 flex items-end justify-between gap-4">
+          <h2 className="text-2xl font-black tracking-tight text-[#23140c]">
+            Khám phá danh mục
+          </h2>
+          <Link
+            href="/menu"
+            className="text-sm font-bold text-[#ff6b00] hover:text-[#e45f00]"
+          >
+            Xem thực đơn
+          </Link>
         </div>
 
-        <div className="no-scrollbar flex gap-3 overflow-x-auto pb-4">
-          {isLoading && categories.length === 0 && Array.from({ length: 8 }).map((_, index) => (
-            <div key={index} className="h-12 w-28 shrink-0 animate-pulse rounded-2xl bg-orange-50" />
-          ))}
-          {!isLoading && displayCategories.length === 0 && (
-            <div className="rounded-2xl bg-orange-50 px-5 py-4 text-sm font-bold text-[#704322]/70">
-              Chưa có danh mục nào từ API.
-            </div>
-          )}
-          {(!isLoading || categories.length > 0) && displayCategories.map((categoryName, idx) => (
-            <motion.div
-              key={categoryName}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.04 + 0.2 }}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.96 }}
-              className="shrink-0"
-            >
-              <Link
-                href={"/menu?category=" + encodeURIComponent(categoryName)}
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#fff7ed] px-5 text-sm font-black text-[#704322] ring-1 ring-orange-100 transition-all hover:bg-[#23140c] hover:text-white hover:ring-[#23140c]"
-              >
-                {categoryName}
-              </Link>
-            </motion.div>
-          ))}
-        </div>
+        {isLoading && categories.length === 0 ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-20 animate-pulse rounded-2xl bg-[#fff7ed]"
+              />
+            ))}
+          </div>
+        ) : displayCategories.length === 0 ? (
+          <p className="rounded-2xl bg-[#fff7ed] px-5 py-4 text-sm font-semibold text-[#704322]">
+            Chưa có danh mục nào.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {displayCategories.map((categoryName) => {
+              const count = dishCountByCategory[categoryName];
+              return (
+                <Link
+                  key={categoryName}
+                  href={"/menu?category=" + encodeURIComponent(categoryName)}
+                  className="rounded-2xl bg-[#fff7ed] px-4 py-4 ring-1 ring-[#23140c]/5 transition-colors hover:bg-[#ff6b00] hover:text-white hover:ring-[#ff6b00]"
+                >
+                  <p className="text-sm font-black tracking-tight">
+                    {categoryName}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold opacity-70">
+                    {count ? count + " món" : "Xem món"}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      <style jsx global>{`
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </section>
   );
 }
