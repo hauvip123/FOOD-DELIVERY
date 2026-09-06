@@ -6,239 +6,326 @@ import { Repository } from 'typeorm';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 import { FindRestaurantsQueryDto } from './dto/find-restaurants-query.dto';
-
+import { RedisService } from 'src/common/redis/redis.service';
+import { hashRestaurantListQuery } from 'src/common/redis/cache-key.util';
+import {
+  CACHE_KEYS,
+  CACHE_TTL_SECONDS,
+} from '../../common/redis/redis.constants';
 
 @Injectable()
 export class RestaurantsService {
-    constructor(
-        @InjectRepository(Restaurant) private readonly restaurantRepository: Repository<Restaurant>,
-        @InjectRepository(FavoriteRestaurant) private readonly favoriteRestaurantRepository: Repository<FavoriteRestaurant>
-    ) { }
-    async createRestaurant(dataRestaurant: CreateRestaurantDto, ownerId: number) {
-        const restaurant = this.restaurantRepository.create(dataRestaurant)
-        restaurant.ownerId = ownerId;
-        await this.restaurantRepository.save(restaurant);
-        return {
-            statusCode: 201,
-            message: "Restaurant created successfully",
-            data: restaurant
-        }
+  constructor(
+    @InjectRepository(Restaurant)
+    private readonly restaurantRepository: Repository<Restaurant>,
+    @InjectRepository(FavoriteRestaurant)
+    private readonly favoriteRestaurantRepository: Repository<FavoriteRestaurant>,
+    private readonly redisService: RedisService,
+  ) {}
+  async createRestaurant(dataRestaurant: CreateRestaurantDto, ownerId: number) {
+    const restaurant = this.restaurantRepository.create(dataRestaurant);
+    restaurant.ownerId = ownerId;
+    await this.restaurantRepository.save(restaurant);
+    await this.invalidateRestaurantCache();
+    return {
+      statusCode: 201,
+      message: 'Restaurant created successfully',
+      data: restaurant,
+    };
+  }
+
+  async findAllAdmin() {
+    const restaurants = await this.restaurantRepository.find({
+      relations: {
+        owner: true,
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    // Fetch counts for all owners in this list
+    const ownerIds = Array.from(
+      new Set(restaurants.map((r) => r.ownerId).filter((id) => id !== null)),
+    );
+
+    let ownerCounts: Record<number, number> = {};
+    if (ownerIds.length > 0) {
+      const counts = await this.restaurantRepository
+        .createQueryBuilder('restaurant')
+        .select('restaurant.ownerId', 'ownerId')
+        .addSelect('COUNT(restaurant.id)', 'count')
+        .where('restaurant.ownerId IN (:...ownerIds)', { ownerIds })
+        .groupBy('restaurant.ownerId')
+        .getRawMany();
+
+      ownerCounts = counts.reduce((acc, curr) => {
+        acc[curr.ownerId] = parseInt(curr.count);
+        return acc;
+      }, {});
     }
 
-    async findAllAdmin() {
-        const restaurants = await this.restaurantRepository.find({
-            relations: {
-                owner: true,
-            },
-            order: { createdAt: 'DESC' },
-        });
+    const data = restaurants.map((res) => ({
+      ...res,
+      ownerRestaurantsCount: res.ownerId ? ownerCounts[res.ownerId] || 0 : 0,
+    }));
 
-        // Fetch counts for all owners in this list
-        const ownerIds = Array.from(new Set(restaurants.map(r => r.ownerId).filter(id => id !== null)));
-        
-        let ownerCounts: Record<number, number> = {};
-        if (ownerIds.length > 0) {
-            const counts = await this.restaurantRepository
-                .createQueryBuilder('restaurant')
-                .select('restaurant.ownerId', 'ownerId')
-                .addSelect('COUNT(restaurant.id)', 'count')
-                .where('restaurant.ownerId IN (:...ownerIds)', { ownerIds })
-                .groupBy('restaurant.ownerId')
-                .getRawMany();
-            
-            ownerCounts = counts.reduce((acc, curr) => {
-                acc[curr.ownerId] = parseInt(curr.count);
-                return acc;
-            }, {});
-        }
+    return {
+      statusCode: 200,
+      message: 'All restaurants found successfully',
+      data: data,
+    };
+  }
 
-        const data = restaurants.map(res => ({
-            ...res,
-            ownerRestaurantsCount: res.ownerId ? (ownerCounts[res.ownerId] || 0) : 0
-        }));
+  async findAll(query: FindRestaurantsQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 12;
+    const skip = (page - 1) * limit;
+    const sortBy = query.sortBy ?? 'createdAt';
+    const sortOrder = (query.sortOrder ?? 'DESC').toUpperCase() as
+      | 'ASC'
+      | 'DESC';
 
-        return {
-            statusCode: 200,
-            message: "All restaurants found successfully",
-            data: data
-        }
+    const cacheKey = CACHE_KEYS.restaurantList(hashRestaurantListQuery(query));
+    const cached = await this.redisService.get<{
+      statusCode: number;
+      message: string;
+      data: Restaurant[];
+      meta: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+    const restaurantQuery =
+      this.restaurantRepository.createQueryBuilder('restaurant');
+
+    if (query.search) {
+      const search = `%${query.search.trim()}%`;
+      restaurantQuery.andWhere('restaurant.name LIKE :search', { search });
     }
 
-    async findAll(query: FindRestaurantsQueryDto) {
-        const page = query.page ?? 1;
-        const limit = query.limit ?? 12;
-        const skip = (page - 1) * limit;
-        const sortBy = query.sortBy ?? 'createdAt';
-        const sortOrder = (query.sortOrder ?? 'DESC').toUpperCase() as 'ASC' | 'DESC';
-
-        const restaurantQuery = this.restaurantRepository.createQueryBuilder('restaurant');
-
-        if (query.search) {
-            const search = `%${query.search.trim()}%`;
-            restaurantQuery.andWhere('restaurant.name LIKE :search', { search });
-        }
-
-        if (query.city) {
-            restaurantQuery.andWhere('restaurant.city LIKE :city', { city: `%${query.city.trim()}%` });
-        }
-
-        if (query.address) {
-            restaurantQuery.andWhere('restaurant.address LIKE :address', { address: `%${query.address.trim()}%` });
-        }
-
-        if (query.cuisine) {
-            restaurantQuery.andWhere('restaurant.cuisine LIKE :cuisine', { cuisine: `%${query.cuisine.trim()}%` });
-        }
-
-        if (query.isOpen !== undefined) {
-            restaurantQuery.andWhere('restaurant.isOpen = :isOpen', { isOpen: query.isOpen });
-        }
-
-        if (query.minRating !== undefined) {
-            restaurantQuery.andWhere('restaurant.ratingAverage >= :minRating', { minRating: query.minRating });
-        }
-
-        if (query.maxRating !== undefined) {
-            restaurantQuery.andWhere('restaurant.ratingAverage <= :maxRating', { maxRating: query.maxRating });
-        }
-
-        const [restaurants, total] = await restaurantQuery
-            .orderBy(`restaurant.${sortBy}`, sortOrder)
-            .skip(skip)
-            .take(limit)
-            .getManyAndCount();
-
-        return {
-            statusCode: 200,
-            message: "Restaurants found successfully",
-            data: restaurants,
-            meta: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-            }
-        }
+    if (query.city) {
+      restaurantQuery.andWhere('restaurant.city LIKE :city', {
+        city: `%${query.city.trim()}%`,
+      });
     }
 
-    async findFavoriteRestaurants(userId: number) {
-        const favorites = await this.favoriteRestaurantRepository.find({
-            where: { userId },
-            relations: { restaurant: true },
-            order: { createdAt: 'DESC' },
-        });
-
-        return {
-            statusCode: 200,
-            message: "Favorite restaurants fetched successfully",
-            data: favorites.map((favorite) => favorite.restaurant).filter(Boolean),
-        }
+    if (query.address) {
+      restaurantQuery.andWhere('restaurant.address LIKE :address', {
+        address: `%${query.address.trim()}%`,
+      });
     }
 
-    async findFavoriteRestaurantIds(userId: number) {
-        const favorites = await this.favoriteRestaurantRepository.find({
-            where: { userId },
-            select: { restaurantId: true },
-            order: { createdAt: 'DESC' },
-        });
-
-        return {
-            statusCode: 200,
-            message: "Favorite restaurant ids fetched successfully",
-            data: favorites.map((favorite) => favorite.restaurantId),
-        }
+    if (query.cuisine) {
+      restaurantQuery.andWhere('restaurant.cuisine LIKE :cuisine', {
+        cuisine: `%${query.cuisine.trim()}%`,
+      });
     }
 
-    async checkFavoriteRestaurant(userId: number, restaurantId: number) {
-        const favorite = await this.favoriteRestaurantRepository.findOne({
-            where: { userId, restaurantId },
-        });
-
-        return {
-            statusCode: 200,
-            message: "Favorite restaurant status fetched successfully",
-            data: { isFavorite: Boolean(favorite) },
-        }
+    if (query.isOpen !== undefined) {
+      restaurantQuery.andWhere('restaurant.isOpen = :isOpen', {
+        isOpen: query.isOpen,
+      });
     }
 
-    async addFavoriteRestaurant(userId: number, restaurantId: number) {
-        const restaurant = await this.restaurantRepository.findOne({ where: { id: restaurantId } });
-        if (!restaurant) {
-            throw new NotFoundException("Restaurant not found")
-        }
-
-        const existingFavorite = await this.favoriteRestaurantRepository.findOne({
-            where: { userId, restaurantId },
-            relations: { restaurant: true },
-        });
-
-        if (existingFavorite) {
-            return {
-                statusCode: 200,
-                message: "Restaurant already in favorites",
-                data: existingFavorite.restaurant ?? restaurant,
-            }
-        }
-
-        const favorite = this.favoriteRestaurantRepository.create({ userId, restaurantId });
-        await this.favoriteRestaurantRepository.save(favorite);
-
-        return {
-            statusCode: 201,
-            message: "Restaurant added to favorites",
-            data: restaurant,
-        }
+    if (query.minRating !== undefined) {
+      restaurantQuery.andWhere('restaurant.ratingAverage >= :minRating', {
+        minRating: query.minRating,
+      });
     }
 
-    async removeFavoriteRestaurant(userId: number, restaurantId: number) {
-        await this.favoriteRestaurantRepository.delete({ userId, restaurantId });
-
-        return {
-            statusCode: 200,
-            message: "Restaurant removed from favorites",
-        }
+    if (query.maxRating !== undefined) {
+      restaurantQuery.andWhere('restaurant.ratingAverage <= :maxRating', {
+        maxRating: query.maxRating,
+      });
     }
 
-    async findByOwner(ownerId: number) {
-        const restaurants = await this.restaurantRepository.find({ where: { ownerId } });
-        return {
-            statusCode: 200,
-            message: "Owner restaurants found successfully",
-            data: restaurants
-        }
+    const [restaurants, total] = await restaurantQuery
+      .orderBy(`restaurant.${sortBy}`, sortOrder)
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    const response = {
+      statusCode: 200,
+      message: 'Restaurants found successfully',
+      data: restaurants,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+    await this.redisService.set(
+      cacheKey,
+      response,
+      CACHE_TTL_SECONDS.restaurantList,
+    );
+    return response;
+  }
+
+  private async invalidateRestaurantCache(restaurantId?: number) {
+    const keys = [
+      restaurantId ? CACHE_KEYS.restaurantDetail(restaurantId) : undefined,
+      restaurantId ? CACHE_KEYS.dishesByRestaurant(restaurantId) : undefined,
+    ].filter((key): key is string => Boolean(key));
+    await Promise.all([
+      this.redisService.deleteByPattern(CACHE_KEYS.restaurantLists),
+      this.redisService.deleteByPattern(CACHE_KEYS.dishLists),
+      keys.length > 0 ? this.redisService.delete(...keys) : Promise.resolve(),
+    ]);
+  }
+  async findFavoriteRestaurants(userId: number) {
+    const favorites = await this.favoriteRestaurantRepository.find({
+      where: { userId },
+      relations: { restaurant: true },
+      order: { createdAt: 'DESC' },
+    });
+
+    return {
+      statusCode: 200,
+      message: 'Favorite restaurants fetched successfully',
+      data: favorites.map((favorite) => favorite.restaurant).filter(Boolean),
+    };
+  }
+
+  async findFavoriteRestaurantIds(userId: number) {
+    const favorites = await this.favoriteRestaurantRepository.find({
+      where: { userId },
+      select: { restaurantId: true },
+      order: { createdAt: 'DESC' },
+    });
+
+    return {
+      statusCode: 200,
+      message: 'Favorite restaurant ids fetched successfully',
+      data: favorites.map((favorite) => favorite.restaurantId),
+    };
+  }
+
+  async checkFavoriteRestaurant(userId: number, restaurantId: number) {
+    const favorite = await this.favoriteRestaurantRepository.findOne({
+      where: { userId, restaurantId },
+    });
+
+    return {
+      statusCode: 200,
+      message: 'Favorite restaurant status fetched successfully',
+      data: { isFavorite: Boolean(favorite) },
+    };
+  }
+
+  async addFavoriteRestaurant(userId: number, restaurantId: number) {
+    const restaurant = await this.restaurantRepository.findOne({
+      where: { id: restaurantId },
+    });
+    if (!restaurant) {
+      throw new NotFoundException('Restaurant not found');
     }
 
-    async findByid(id: number) {
-        const restaurant = await this.restaurantRepository.findOne({ where: { id } })
-        if (!restaurant) {
-            throw new NotFoundException("Restaurant not found")
-        }
-        return {
-            statusCode: 200,
-            message: "Restaurant found successfully",
-            data: restaurant
-        }
+    const existingFavorite = await this.favoriteRestaurantRepository.findOne({
+      where: { userId, restaurantId },
+      relations: { restaurant: true },
+    });
+
+    if (existingFavorite) {
+      return {
+        statusCode: 200,
+        message: 'Restaurant already in favorites',
+        data: existingFavorite.restaurant ?? restaurant,
+      };
     }
 
-    async updateRestaurant(id: number, dataRestaurant: UpdateRestaurantDto) {
-        const restaurant = await this.restaurantRepository.findOne({ where: { id } });
-        if (!restaurant) {
-            throw new NotFoundException("Restaurant not found")
-        }
-        Object.assign(restaurant, dataRestaurant);
-        const updatedRestaurant = await this.restaurantRepository.save(restaurant);
-        return {
-            statusCode: 200,
-            message: "Restaurant updated successfully",
-            data: updatedRestaurant
-        }
-    }
+    const favorite = this.favoriteRestaurantRepository.create({
+      userId,
+      restaurantId,
+    });
+    await this.favoriteRestaurantRepository.save(favorite);
 
-    async deleteRestaurant(id: number) {
-        await this.restaurantRepository.delete(id);
-        return {
-            statusCode: 200,
-            message: "Restaurant deleted successfully"
-        }
+    return {
+      statusCode: 201,
+      message: 'Restaurant added to favorites',
+      data: restaurant,
+    };
+  }
+
+  async removeFavoriteRestaurant(userId: number, restaurantId: number) {
+    await this.favoriteRestaurantRepository.delete({ userId, restaurantId });
+
+    return {
+      statusCode: 200,
+      message: 'Restaurant removed from favorites',
+    };
+  }
+
+  async findByOwner(ownerId: number) {
+    const restaurants = await this.restaurantRepository.find({
+      where: { ownerId },
+    });
+    return {
+      statusCode: 200,
+      message: 'Owner restaurants found successfully',
+      data: restaurants,
+    };
+  }
+
+  async findByid(id: number) {
+    const cacheKey = CACHE_KEYS.restaurantDetail(id);
+    const cached = await this.redisService.get<{
+      statusCode: number;
+      message: string;
+      data: Restaurant;
+    }>(cacheKey);
+    if (cached) {
+      return cached;
     }
+    const restaurant = await this.restaurantRepository.findOne({
+      where: { id },
+    });
+    if (!restaurant) {
+      throw new NotFoundException('Restaurant not found');
+    }
+    const response = {
+      statusCode: 200,
+      message: 'Restaurant found successfully',
+      data: restaurant,
+    };
+    await this.redisService.set(
+      cacheKey,
+      response,
+      CACHE_TTL_SECONDS.restaurantDetail,
+    );
+    return response;
+  }
+
+  async updateRestaurant(id: number, dataRestaurant: UpdateRestaurantDto) {
+    const restaurant = await this.restaurantRepository.findOne({
+      where: { id },
+    });
+    if (!restaurant) {
+      throw new NotFoundException('Restaurant not found');
+    }
+    Object.assign(restaurant, dataRestaurant);
+    const updatedRestaurant = await this.restaurantRepository.save(restaurant);
+    await this.invalidateRestaurantCache(updatedRestaurant.id);
+    return {
+      statusCode: 200,
+      message: 'Restaurant updated successfully',
+      data: updatedRestaurant,
+    };
+  }
+
+  async deleteRestaurant(id: number) {
+    await this.restaurantRepository.delete(id);
+    await this.invalidateRestaurantCache(id);
+    return {
+      statusCode: 200,
+      message: 'Restaurant deleted successfully',
+    };
+  }
 }

@@ -6,6 +6,9 @@ export const CACHE_KEYS = {
   dishList: (queryHash: string) => `dishes:list:${queryHash}`,
   dishDetail: (id: number) => `dishes:detail:${id}`,
   dishesByRestaurant: (id: number) => `dishes:restaurant:${id}`,
+  restaurantLists: 'restaurants:list:*',
+  restaurantList: (queryHash: string) => `restaurants:list:${queryHash}`,
+  restaurantDetail: (id: number) => `restaurants:detail:${id}`,
 } as const;
 
 export const CACHE_TTL_SECONDS = {
@@ -13,4 +16,6 @@ export const CACHE_TTL_SECONDS = {
   dishList: 5 * 60,
   dishDetail: 10 * 60,
   dishesByRestaurant: 5 * 60,
+  restaurantList: 5 * 60,
+  restaurantDetail: 10 * 60,
 } as const;
